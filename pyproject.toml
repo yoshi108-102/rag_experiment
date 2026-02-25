@@ -8,6 +8,14 @@ dependencies = [
     "bs4>=0.0.2",
     "langchain>=1.2.10",
     "langchain-community>=0.4.1",
+    "langchain-openai>=1.1.10",
     "langchain-opencv>=0.1.1",
     "langchain-text-splitters>=1.1.1",
+    "pydantic>=2.12.5",
+    "python-dotenv>=1.2.1",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
 ]

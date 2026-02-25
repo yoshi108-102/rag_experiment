@@ -1,0 +1,36 @@
+以下のテキストから【作業暗黙知に直接関係する内容のみ】を抽出し、指定のJSONスキーマで出力してください。
+
+【出力JSONスキーマの定義】
+{
+  "observations": [
+    {
+      "statement": "作業中の客観的な観察事実や気づき。原文に忠実に記載すること",
+      "actor": "作業者の名称や主語",
+      "confidence": "断定ならhigh、推測ならmediumやlow",
+      "source_text": "抽出元のテキスト"
+    }
+  ],
+  "hypotheses": [
+    {
+      "statement": "作業者が立てた仮説や推論",
+      "confidence": "断定ならhigh、推測ならmediumやlow",
+      "needs_verification": trueまたはfalse (検証が必要と思われるか),
+      "source_text": "抽出元のテキスト"
+    }
+  ],
+  "methods": [
+    {
+      "description": "押し方や見る位置など、具体的な手法や操作",
+      "steps": ["手順のリスト"],
+      "applicable_when": "どのような状況・条件でその手法を適用するか（例: '曲がりが大きい時'）",
+      "source_text": "抽出元のテキスト"
+    }
+  ],
+  "questions": [
+    {
+      "text": "作業中に出てきた技術的・感覚的な疑問",
+      "category": "技術/視覚/身体/心理 のいずれか",
+      "source_text": "抽出元のテキスト"
+    }
+  ]
+}
