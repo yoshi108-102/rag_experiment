@@ -1,0 +1,290 @@
+{
+  "observations": [
+    {
+      "statement": "中くらいのプレス機は径35以上のもので使用",
+      "actor": "メモ作成者",
+      "confidence": "high",
+      "source_text": "中くらいのプレス機は径35以上のもので使用"
+    },
+    {
+      "statement": "けっこうがっつり曲げてる",
+      "actor": "メモ作成者",
+      "confidence": "high",
+      "source_text": "丸棒が硬い材質だからか、自分が思っていたよりもけっこうがっつり曲げてる"
+    },
+    {
+      "statement": "ある程度矯正できたら台において曲がりを確かめる",
+      "actor": "作業者",
+      "confidence": "high",
+      "source_text": "ある程度矯正できたら台において曲がりを確かめる"
+    },
+    {
+      "statement": "端の修正は難しい",
+      "actor": "メモ作成者",
+      "confidence": "high",
+      "source_text": "端の修正は難しい"
+    },
+    {
+      "statement": "バナナ型は簡単",
+      "actor": "メモ作成者",
+      "confidence": "high",
+      "source_text": "バナナ型は簡単"
+    },
+    {
+      "statement": "トルネード型はむずかしい（平本さんも難しいと言っている）",
+      "actor": "メモ作成者/平本さん",
+      "confidence": "high",
+      "source_text": "トルネード型はむずかしい（平本さんも難しいと言っている）"
+    },
+    {
+      "statement": "30本で30分（平本さん）",
+      "actor": "平本さん",
+      "confidence": "high",
+      "source_text": "30本で30分（平本さん）"
+    },
+    {
+      "statement": "30本で60分（久保田さんとかプレスよくやる人）",
+      "actor": "久保田さん/プレスよくやる人",
+      "confidence": "high",
+      "source_text": "60分（久保田さんとかプレスよくやる人）"
+    },
+    {
+      "statement": "久保田さんを見ていて「押しすぎかも、あんまり回してみてない」と思った",
+      "actor": "長谷川",
+      "confidence": "medium",
+      "source_text": "久保田さんの見てて思ったこと 押しすぎかも、あんまり回してみてない。"
+    },
+    {
+      "statement": "曲がりが大きいから片目で見る必要ない",
+      "actor": "長谷川",
+      "confidence": "high",
+      "source_text": "（まあ曲がりが大きいから片目で見る必要ないしね）"
+    },
+    {
+      "statement": "回して確認せずに台で確認してる→時間ロス！",
+      "actor": "長谷川",
+      "confidence": "high",
+      "source_text": "回して確認せずに台で確認してる→時間ロス！"
+    },
+    {
+      "statement": "回して確認するときも端っこで支えて見てない",
+      "actor": "長谷川",
+      "confidence": "high",
+      "source_text": "回して確認するときも端っこで支えて見てない。"
+    },
+    {
+      "statement": "棒の曲がりは曲率の重ね合わせ",
+      "actor": "長谷川",
+      "confidence": "high",
+      "source_text": "棒の曲がりは曲率の重ね合わせ。"
+    },
+    {
+      "statement": "曲がりがでかすぎてすべて曲がって見える",
+      "actor": "長谷川",
+      "confidence": "high",
+      "source_text": "曲がりがでかすぎてすべて曲がって見える"
+    },
+    {
+      "statement": "どうも部材によって硬さがだいぶ変わる",
+      "actor": "長谷川",
+      "confidence": "medium",
+      "source_text": "どうも部材によって硬さがだいぶ変わるので、"
+    },
+    {
+      "statement": "最初の一本目でうまく適合できないとつらい",
+      "actor": "長谷川",
+      "confidence": "high",
+      "source_text": "最初の一本目でうまく適合できないとつらい"
+    },
+    {
+      "statement": "面倒くさいのと重いのが理由で90度づつ回していた",
+      "actor": "長谷川",
+      "confidence": "high",
+      "source_text": "なんか面倒くさいのと重いのが理由で９０度づつ回していたが、"
+    },
+    {
+      "statement": "これくらいぐにゃぐにゃだと90度回転のあとでまっすぐになっていることが保証されない",
+      "actor": "長谷川",
+      "confidence": "high",
+      "source_text": "よく考えたらこれくらいぐにゃぐにゃだと９０度回転のあとでまっすぐになっていることが保証されない。"
+    },
+    {
+      "statement": "押し加減を結構過剰目にやらないとスプリングバックする",
+      "actor": "長谷川",
+      "confidence": "high",
+      "source_text": "押し加減を結構過剰目にやらないとスプリングバックする。"
+    },
+    {
+      "statement": "曲がりすぎててどこから手をつけていいかわからなくなる",
+      "actor": "長谷川",
+      "confidence": "high",
+      "source_text": "曲がりすぎててどこから手をつけていいかわからなくなる。"
+    },
+    {
+      "statement": "部材の硬さが違うので今までの感覚とずれる",
+      "actor": "長谷川",
+      "confidence": "high",
+      "source_text": "部材の硬さが違うので今までの感覚とずれる。"
+    },
+    {
+      "statement": "破断するのが怖い",
+      "actor": "長谷川",
+      "confidence": "high",
+      "source_text": "破断するのが怖い"
+    },
+    {
+      "statement": "ねじれはドツボにはまる",
+      "actor": "長谷川",
+      "confidence": "high",
+      "source_text": "ねじれはドツボにはまるので、"
+    },
+    {
+      "statement": "複数方向に曲がっているときには、とにかく一方向のゆがみを直すことを最優先にする必要がある",
+      "actor": "長谷川",
+      "confidence": "high",
+      "source_text": "複数方向に曲がっているときには、とにかく一方向のゆがみを直すことを最優先にする必要がある。"
+    },
+    {
+      "statement": "曲がりの走査のときの軸を固定し手探すように工夫しないといけないと思う",
+      "actor": "長谷川",
+      "confidence": "high",
+      "source_text": "やっぱり曲がりの走査のときの軸を固定し手探すように工夫しないといけないと思う"
+    }
+  ],
+  "hypotheses": [
+    {
+      "statement": "久保田さんは押しすぎかもしれない",
+      "confidence": "medium",
+      "needs_verification": true,
+      "source_text": "押しすぎかも"
+    },
+    {
+      "statement": "久保田さんはあんまり回してみてない",
+      "confidence": "medium",
+      "needs_verification": true,
+      "source_text": "あんまり回してみてない。"
+    },
+    {
+      "statement": "回して確認せずに台で確認しているのは時間ロスになる",
+      "confidence": "high",
+      "needs_verification": false,
+      "source_text": "回して確認せずに台で確認してる→時間ロス！"
+    },
+    {
+      "statement": "部材によって硬さがだいぶ変わる",
+      "confidence": "medium",
+      "needs_verification": true,
+      "source_text": "どうも部材によって硬さがだいぶ変わるので、"
+    },
+    {
+      "statement": "これくらいぐにゃぐにゃだと90度回転のあとでまっすぐになっていることが保証されない",
+      "confidence": "high",
+      "needs_verification": false,
+      "source_text": "これくらいぐにゃぐにゃだと９０度回転のあとでまっすぐになっていることが保証されない。"
+    },
+    {
+      "statement": "180度回転させたうえでみるべき",
+      "confidence": "medium",
+      "needs_verification": true,
+      "source_text": "１８０度回転させたうえでみるべき"
+    },
+    {
+      "statement": "押し加減を結構過剰目にやらないとスプリングバックする",
+      "confidence": "high",
+      "needs_verification": false,
+      "source_text": "押し加減を結構過剰目にやらないとスプリングバックする。"
+    },
+    {
+      "statement": "ねじれはドツボにはまるので、センターで回したときにうまくいくならよい",
+      "confidence": "medium",
+      "needs_verification": true,
+      "source_text": "ねじれはドツボにはまるので、センターで回したときにうまくいくならよいということで、、、"
+    },
+    {
+      "statement": "受け皿の直径分が有効範囲だから直径内に一つの曲率しか存在しない状態をつくったほうがよさそう",
+      "confidence": "medium",
+      "needs_verification": true,
+      "source_text": "受け皿の直径分が有効範囲だから直径内に一つの曲率しか存在しない状態をつくったほうがよさそう"
+    }
+  ],
+  "methods": [
+    {
+      "description": "ある程度矯正できたら台に置いて曲がりを確認する",
+      "steps": [
+        "ある程度矯正する",
+        "台に置く",
+        "曲がりを確かめる"
+      ],
+      "applicable_when": "ある程度矯正できたら",
+      "source_text": "ある程度矯正できたら台において曲がりを確かめる"
+    },
+    {
+      "description": "回して確認する（台での確認だけにしない）",
+      "steps": [
+        "部材を回す",
+        "回しながら曲がりを確認する"
+      ],
+      "applicable_when": "曲がり確認時（台で確認して時間ロスになるのを避けたい時）",
+      "source_text": "回して確認せずに台で確認してる→時間ロス！"
+    },
+    {
+      "description": "回して確認するときは端っこで支えて見る",
+      "steps": [
+        "端っこで支える",
+        "回して曲がりを確認する"
+      ],
+      "applicable_when": "回して確認する時",
+      "source_text": "回して確認するときも端っこで支えて見てない。"
+    },
+    {
+      "description": "90度ずつではなく180度回転させたうえで見る",
+      "steps": [
+        "部材を180度回転させる",
+        "回転後の状態を見て確認する"
+      ],
+      "applicable_when": "これくらいぐにゃぐにゃで、90度回転後にまっすぐが保証されない時",
+      "source_text": "９０度づつ回していたが、よく考えたらこれくらいぐにゃぐにゃだと９０度回転のあとでまっすぐになっていることが保証されない。１８０度回転させたうえでみるべき"
+    },
+    {
+      "description": "スプリングバックを見越して押し加減を過剰目にする",
+      "steps": [
+        "押し加減を設定する",
+        "結構過剰目に押す",
+        "スプリングバックを考慮して仕上がりを狙う"
+      ],
+      "applicable_when": "スプリングバックする時",
+      "source_text": "押し加減を結構過剰目にやらないとスプリングバックする。"
+    },
+    {
+      "description": "複数方向に曲がっている場合は一方向のゆがみを最優先で直す",
+      "steps": [
+        "複数方向の曲がりを認識する",
+        "一方向のゆがみを選ぶ",
+        "その一方向のゆがみを優先して直す"
+      ],
+      "applicable_when": "複数方向に曲がっているとき",
+      "source_text": "複数方向に曲がっているときには、とにかく一方向のゆがみを直すことを最優先にする必要がある。"
+    },
+    {
+      "description": "曲がりの走査では軸を固定し、手探すように工夫する",
+      "steps": [
+        "走査時の軸を固定する",
+        "手探すように確認・探索する"
+      ],
+      "applicable_when": "曲がりの走査のとき",
+      "source_text": "曲がりの走査のときの軸を固定し手探すように工夫しないといけないと思う"
+    }
+  ],
+  "questions": [
+    {
+      "text": "結局どこをプレスすればいいかわからない",
+      "category": "技術",
+      "source_text": "結局どこをプレスすればいいかわからない"
+    },
+    {
+      "text": "ベジエ曲線を学んでみるべき？",
+      "category": "技術",
+      "source_text": "→ベジエ曲線を学んでみるべき？"
+    }
+  ]
+}

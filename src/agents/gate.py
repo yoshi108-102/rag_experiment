@@ -15,9 +15,19 @@ def load_gate_prompt() -> str:
     It enforces rules such as limiting the reason length and selecting from
     specific question templates for the DEEPEN route.
     """
-    prompt_path = Path(__file__).resolve().parent.parent.parent / "prompts" / "gate_prompt.txt"
+    base_dir = Path(__file__).resolve().parent.parent.parent
+    prompt_path = base_dir / "prompts" / "gate_prompt.md"
+    overall_path = base_dir / "prompts" / "overall.md"
+    
     with open(prompt_path, "r", encoding="utf-8") as f:
-        return f.read()
+        prompt = f.read()
+        
+    if overall_path.exists():
+        with open(overall_path, "r", encoding="utf-8") as f:
+            overall_context = f.read()
+        prompt += f"\n\n[ドメイン知識（前提）]\n以下の作業概要を前提知識として踏まえた上で、ユーザーの発言を解釈してください。\n{overall_context}"
+        
+    return prompt
 
 
 def analyze_input(user_input: str) -> GateDecision:

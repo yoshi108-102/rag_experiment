@@ -37,7 +37,7 @@ def extract_knowledge(system_prompt: str, user_prompt_template: str, text: str) 
     
     try:
         response = client.chat.completions.create(
-            model="gpt-4o", # 抽出タスクは知能の高いモデル推奨
+            model="gpt-5.2", # 抽出タスクは知能の高いモデル推奨
             response_format={"type": "json_object"}, # 出力を確実にJSONパースするためにJSONモード指定
             messages=[
                 {"role": "system", "content": system_prompt},
