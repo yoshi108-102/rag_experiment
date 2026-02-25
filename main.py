@@ -10,6 +10,8 @@ def main():
     print("Welcome to Reflective Gate Chat!")
     print("Type 'exit' or 'quit' to stop.\n")
     
+    print("AI:   お疲れ様です！本日の作業はどうでしたか？何か気になったことや、迷った瞬間はありましたか？\n")
+    
     while True:
         try:
             user_input = input("User: ")
