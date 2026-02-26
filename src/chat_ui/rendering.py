@@ -58,6 +58,8 @@ def render_route_debug_panel(debug_info: dict[str, Any] | None) -> None:
     with st.expander("AI Routing Info (Debug)", expanded=False):
         st.write(f"**Route:** {debug_info.get('route')}")
         st.write(f"**Reason:** {debug_info.get('reason')}")
+        if debug_info.get("clarify_json"):
+            st.write("**CLARIFY JSON:**", debug_info["clarify_json"])
 
         if "trigger" in rag_info:
             st.write(f"**RAG Trigger:** {rag_info.get('trigger')}")
@@ -78,3 +80,76 @@ def render_chat_history(messages: list[dict[str, Any]]) -> None:
             if debug_info:
                 render_rag_panel(debug_info.get("rag"))
                 render_route_debug_panel(debug_info)
+
+
+def render_rag_sidebar(messages: list[dict[str, Any]]) -> None:
+    with st.sidebar:
+        st.subheader("RAG Debug")
+
+        latest_rag = None
+        latest_debug = None
+        for msg in reversed(messages):
+            if msg.get("role") != "assistant":
+                continue
+            debug_info = msg.get("debug_info") or {}
+            rag = debug_info.get("rag")
+            if rag is not None:
+                latest_rag = rag
+                latest_debug = debug_info
+                break
+
+        if latest_rag is None:
+            st.info("まだRAG実行結果はありません。")
+            return
+
+        retrieval_method = latest_rag.get("retrieval_method") or "unknown"
+        st.caption(f"retrieval: {retrieval_method}")
+        if latest_rag.get("retrieval_note"):
+            st.caption(f"note: {latest_rag['retrieval_note']}")
+
+        st.write(f"Route: `{(latest_debug or {}).get('route', '-')}`")
+        st.write(f"Trigger: `{latest_rag.get('trigger')}`")
+        if latest_rag.get("query"):
+            st.text_area("RAG Query", latest_rag["query"], height=120, disabled=True)
+
+        novelty = latest_rag.get("novelty") or {}
+        if novelty:
+            top_score = None
+            retrieved = latest_rag.get("retrieved") or []
+            if retrieved:
+                top_score = retrieved[0].get("score")
+            st.markdown("**Novelty**")
+            st.write(
+                {
+                    "is_novel": novelty.get("is_novel"),
+                    "confidence": novelty.get("confidence"),
+                    "reason": novelty.get("reason"),
+                    "top_score": top_score,
+                    "threshold": 0.38,
+                }
+            )
+        elif latest_rag.get("skipped_reason"):
+            st.write(f"Skipped: `{latest_rag.get('skipped_reason')}`")
+
+        retrieved = latest_rag.get("retrieved") or []
+        if not retrieved:
+            st.caption("検索ヒットなし")
+            return
+
+        st.markdown("**Retrieved (Top-K)**")
+        for idx, item in enumerate(retrieved, start=1):
+            record = item.get("record") or {}
+            score = item.get("score", 0.0)
+            reasons = item.get("reasons") or []
+            with st.expander(
+                f"{idx}. {record.get('topic', 'Unknown')} ({score:.2f})",
+                expanded=(idx == 1),
+            ):
+                st.caption(f"type={record.get('record_type', '-')}")
+                if reasons:
+                    st.caption("score reasons: " + ", ".join(reasons))
+                if record.get("tags"):
+                    st.caption("tags: " + ", ".join(record["tags"]))
+                st.write(record.get("text", ""))
+                if record.get("applicable_when"):
+                    st.caption(f"適用条件: {record['applicable_when']}")

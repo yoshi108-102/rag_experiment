@@ -3,7 +3,12 @@ import json
 from unittest.mock import patch, MagicMock
 from langchain_core.messages import AIMessage, HumanMessage
 from src.core.models import GateDecision
-from src.agents.gate import analyze_input, load_gate_prompt, _apply_decision_overrides
+from src.agents.gate import (
+    analyze_input,
+    build_clarify_completion_json,
+    load_gate_prompt,
+    _apply_decision_overrides,
+)
 
 def test_load_gate_prompt():
     """Test if the system prompt loads correctly."""
@@ -129,3 +134,87 @@ def test_apply_decision_overrides_keeps_non_closure_input():
     )
 
     assert overridden == decision
+
+
+def test_apply_decision_overrides_turns_frustration_into_park():
+    decision = GateDecision(
+        route="CLARIFY",
+        reason="Need detail",
+        first_question="どの条件のときですか？",
+    )
+
+    overridden = _apply_decision_overrides(
+        decision,
+        "だから、支持台に乗らないんだから知ったって意味ない",
+    )
+
+    assert overridden.route == "PARK"
+    assert "十分伝わってる" in overridden.first_question
+
+
+def test_apply_decision_overrides_finishes_after_friction_and_confirmation():
+    decision = GateDecision(
+        route="CLARIFY",
+        reason="Need wording",
+        first_question="その言い方でいい？",
+    )
+
+    overridden = _apply_decision_overrides(
+        decision,
+        "そうです",
+        chat_context=[
+            {"role": "assistant", "content": "いま言語化したいのは、先端を除いた判定基準の言い方かな？"},
+            {"role": "user", "content": "だからそうなの"},
+            {"role": "assistant", "content": "じゃあ「支持台に乗らない先端部」で統一でいい？"},
+            {"role": "user", "content": "そうです"},
+        ],
+    )
+
+    assert overridden.route == "FINISH"
+    assert "区切って" in overridden.first_question
+
+
+def test_apply_decision_overrides_finishes_when_cause_and_result_are_both_stated():
+    decision = GateDecision(
+        route="CLARIFY",
+        reason="Need to clarify",
+        first_question="どういう条件でそうなりますか？",
+    )
+
+    overridden = _apply_decision_overrides(
+        decision,
+        "先端が強く曲がっているから、機械に合わせて見ると全体の曲がり判断が引っ張られる",
+        chat_context=[
+            {"role": "assistant", "content": "そのとき何が起きるの？"},
+            {"role": "user", "content": "先端の影響で全体が見えにくい"},
+        ],
+    )
+
+    assert overridden.route == "FINISH"
+    assert "付け加えたいこと" in overridden.first_question
+
+
+def test_build_clarify_completion_json_marks_complete_for_causal_statement():
+    payload = build_clarify_completion_json(
+        "先端が強く曲がっているから、機械に合わせて見ると全体の判断が引っ張られる"
+    )
+
+    assert payload["is_complete"] is True
+    assert payload["kind"] == "idea"
+    assert payload["item"]
+    assert payload["reason"]
+
+
+def test_build_clarify_completion_json_collects_reason_from_recent_context():
+    payload = build_clarify_completion_json(
+        "だから、先端を外して見るようにしてる",
+        chat_context=[
+            {"role": "assistant", "content": "なんでそうしてるの？"},
+            {"role": "user", "content": "先端が曲がってるから全体の見え方が引っ張られる"},
+            {"role": "assistant", "content": "で、どうしてる？"},
+        ],
+    )
+
+    assert payload["is_complete"] is True
+    assert payload["reason"] is not None
+    assert payload["item"] is not None
