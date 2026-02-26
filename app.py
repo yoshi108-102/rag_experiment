@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 from src.agents.gate import analyze_input
 from src.routing.router import execute_route
 from src.rag import analyze_with_rag
+from src.core.chat_logging import ChatSessionLogger
 import collections
 import hashlib
 
@@ -14,9 +15,20 @@ st.set_page_config(page_title="Reflective Gate Chat", page_icon="🧠", layout="
 st.title("Reflective Gate Chat")
 st.markdown("自分の思いを深めるための、会話入口トリアージ型AIチャット")
 
+INITIAL_ASSISTANT_GREETING = "お疲れ様です！本日の作業はどうでしたか？何か気になったことや、迷った瞬間はありましたか？"
+
 RAG_STREAK_TRIGGER = 3
 RAG_COOLDOWN_TURNS = 2
 RAG_BUFFER_MAX_ITEMS = 6
+
+
+def get_chat_logger() -> ChatSessionLogger:
+    state_key = "chat_log_state"
+    if state_key not in st.session_state:
+        logger = ChatSessionLogger.create(app_name="streamlit")
+        st.session_state[state_key] = logger.to_state()
+        return logger
+    return ChatSessionLogger.from_state(st.session_state[state_key])
 
 
 def init_rag_session_state():
@@ -134,15 +146,23 @@ def render_rag_panel(rag_info: dict | None):
             if record.get("applicable_when"):
                 st.caption(f"適用条件: {record['applicable_when']}")
 
+chat_logger = get_chat_logger()
+
 # Initialize chat history
 if "messages" not in st.session_state:
     st.session_state.messages = []
     # Add initial AI greeting
     st.session_state.messages.append({
         "role": "assistant",
-        "content": "お疲れ様です！本日の作業はどうでしたか？何か気になったことや、迷った瞬間はありましたか？",
+        "content": INITIAL_ASSISTANT_GREETING,
         "debug_info": None
     })
+    chat_logger.log_message(
+        "assistant",
+        INITIAL_ASSISTANT_GREETING,
+        source="initial_greeting",
+        message_index=0,
+    )
 
 # Initialize LLM context window (deque) directly retaining only role and content
 if "llm_context" not in st.session_state:
@@ -150,7 +170,7 @@ if "llm_context" not in st.session_state:
     # Also add the initial AI greeting to the context window
     st.session_state.llm_context.append({
         "role": "assistant",
-        "content": "お疲れ様です！本日の作業はどうでしたか？何か気になったことや、迷った瞬間はありましたか？"
+        "content": INITIAL_ASSISTANT_GREETING
     })
 
 init_rag_session_state()
@@ -176,6 +196,11 @@ if prompt := st.chat_input("考えたことや悩みを入力してください.
     
     # Add user message to chat history
     st.session_state.messages.append({"role": "user", "content": prompt, "debug_info": None})
+    chat_logger.log_message(
+        "user",
+        prompt,
+        message_index=len(st.session_state.messages) - 1,
+    )
     st.session_state.llm_context.append({"role": "user", "content": prompt})
 
     # Display assistant response in chat message container
@@ -251,13 +276,25 @@ if prompt := st.chat_input("考えたことや悩みを入力してください.
                     "content": response,
                     "debug_info": debug_info
                 })
+                chat_logger.log_message(
+                    "assistant",
+                    response,
+                    message_index=len(st.session_state.messages) - 1,
+                    debug_info=debug_info,
+                )
                 st.session_state.llm_context.append({
                     "role": "assistant",
                     "content": response
                 })
                 
                 if decision.route == "FINISH":
+                    chat_logger.log_event(
+                        "conversation_finished",
+                        route=decision.route,
+                        reason=decision.reason,
+                    )
                     st.info("対話が終了しました。再開する場合はページをリロードしてください。")
                     
             except Exception as e:
+                chat_logger.log_error(e, stage="streamlit_response", user_input=prompt)
                 st.error(f"エラーが発生しました: {e}")

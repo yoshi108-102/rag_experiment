@@ -38,6 +38,7 @@ venv.bak/
 .pytest_cache/
 .coverage
 htmlcov/
+logs/
 
 # IDE / Editor
 .vscode/
