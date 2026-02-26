@@ -1,0 +1,4 @@
+{"created_at": "2026-02-26T03:11:27.409169+00:00", "route": "CLARIFY", "user_input": "パッとやってパッと終わるのが大事だと思った", "novelty": {"is_novel": true, "confidence": 0.9, "reason": "no similar records found"}, "top_matches": [], "status": "pending_review"}
+{"created_at": "2026-02-26T03:12:10.684932+00:00", "route": "DEEPEN", "user_input": "そうですね\n特に重い棒なんかだとパッと終わらせないと腕が疲れて逆に精度が下がるなと", "novelty": {"is_novel": true, "confidence": 0.9, "reason": "no similar records found"}, "top_matches": [], "status": "pending_review"}
+{"created_at": "2026-02-26T03:16:57.096916+00:00", "route": "DEEPEN", "user_input": "重い棒がきつかった", "novelty": {"is_novel": true, "confidence": 0.9, "reason": "no similar records found"}, "top_matches": [], "status": "pending_review"}
+{"created_at": "2026-02-26T03:17:15.829443+00:00", "route": "CLARIFY", "user_input": "回転の時", "novelty": {"is_novel": true, "confidence": 0.9, "reason": "no similar records found"}, "top_matches": [], "status": "pending_review"}
