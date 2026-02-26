@@ -24,5 +24,8 @@ def execute_route(decision: GateDecision) -> str:
         # Here we just print a log message and return the question/response.
         print(f"[Log] Parking this topic. Reason: {decision.reason}")
         return decision.first_question
+    elif route == "FINISH":
+        print(f"[Log] Conversation finished. Reason: {decision.reason}")
+        return decision.first_question
     else:
         return f"Unknown route: {route}"

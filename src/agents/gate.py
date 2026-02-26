@@ -30,24 +30,66 @@ def load_gate_prompt() -> str:
     return prompt
 
 
-def analyze_input(user_input: str) -> GateDecision:
+def analyze_input(user_input: str) -> tuple[GateDecision, str | None]:
     """
-    Analyzes the user input and returns a classification decision.
+    Analyzes the user input and returns a classification decision along with the 
+    reasoning content if available.
     """
-    # Use gpt-4o-mini as specified in the lightweight model requirement
-    llm = ChatOpenAI(model="gpt-4o-mini")
+    from openai import OpenAI
+    import json
     
-    # Enforce structured output based on the GateDecision Pydantic model
-    structured_llm = llm.with_structured_output(GateDecision)
-    
+    client = OpenAI()
     system_prompt = load_gate_prompt()
     
-    # Combine system prompt and user input
-    messages = [
-        ("system", system_prompt),
-        ("user", user_input)
-    ]
+    response = client.responses.create(
+        model="gpt-5.2",
+        input=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_input}
+        ],
+        reasoning={
+            "effort": "high",
+            "summary": "detailed"
+        },
+        response_format={
+            "type": "json_schema",
+            "json_schema": {
+                "name": "GateDecision",
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "route": {"type": "string", "enum": ["DEEPEN", "PARK", "CLARIFY", "FINISH"]},
+                        "reason": {"type": "string"},
+                        "first_question": {"type": "string"}
+                    },
+                    "required": ["route", "reason", "first_question"],
+                    "additionalProperties": False
+                },
+                "strict": True
+            }
+        }
+    )
     
-    # Invoke the model and parse the output
-    decision = structured_llm.invoke(messages)
-    return decision
+    # Parse the new response format based on schema_ex.txt
+    reasoning = None
+    msg_content_json = None
+    
+    response_dict = json.loads(response.model_dump_json())
+    for item in response_dict.get("output", []):
+        if item.get("type") == "reasoning":
+            summary = item.get("summary", [])
+            if summary and len(summary) > 0:
+                reasoning = summary[0].get("text")
+        elif item.get("type") == "message":
+            content_list = item.get("content", [])
+            if content_list and len(content_list) > 0:
+                msg_content_json = content_list[0].get("text")
+
+    from src.core.models import GateDecision
+    if msg_content_json:
+        decision = GateDecision(**json.loads(msg_content_json))
+    else:
+        # Fallback if parsing fails for some reason
+        decision = GateDecision(route="PARK", reason="Error parsing LLM output", first_question="エラーが発生しました。")
+    
+    return decision, reasoning

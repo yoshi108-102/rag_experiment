@@ -29,6 +29,9 @@ def main():
             
             print(f"AI:   {response}\n")
             
+            if decision.route == "FINISH":
+                break
+            
         except KeyboardInterrupt:
             print("\nExiting...")
             break

@@ -1,0 +1,79 @@
+"output": [
+    {
+      "id": "rs_0cddd573883fd11400699f9621c8888195a207048b1c60a5c2",
+      "summary": [
+        {
+          "text": "**Explaining Critical Decision Method for Kids**\n\nI'm looking to explain the Critical Decision Method in a way that's easy for elementary students to understand. I want to keep it simple and avoid any jargon. It could be helpful to use relatable examples and break down the steps involved. I should also highlight why this method is useful. Maybe bullet points would work well for clarity. I want the explanation to be engaging and accessible!",
+          "type": "summary_text"
+        }
+      ],
+      "type": "reasoning",
+      "content": null,
+      "encrypted_content": null,
+      "status": null
+    },
+    {
+      "id": "msg_0cddd573883fd11400699f962476d4819587886cd21b881880",
+      "content": [
+        {
+          "annotations": [],
+          "text": "Critical Decision Method（クリティカル・ディシジョン・メソッド）は、日本語にすると「大事な決め方を、あとからくわしく思い出して調べる方法」です。むずかしい言葉ですが、やることはけっこうシンプルです。\n\n---\n\n## どんなことをする方法？\n「うまくいったとき」や「危なかったけど助かったとき」みたいな、**すごく大事な場面（ピンチや勝負どころ）**を思い出して、\n\n- そのとき何が見えていた？\n- 何に気づいた？\n- どうやって決めた？\n- ほかのやり方もあった？\n\nを、順番にたどっていく方法です。\n\n---\n\n## なんのためにやるの？\nふつう、「どうしてそれを選んだの？」と聞かれても、  \n人はとっさにやったことをうまく説明できないことがあります。\n\nこの方法を使うと、**上手な人が頭の中で何を考えていたか**がわかって、みんながまねして学べるようになります。\n\n---\n\n## どんなふうに進めるの？（小学生向けの流れ）\n### 1) すごく大事だった場面を1つえらぶ\n例：サッカーで、点が入りそうで入らなかったピンチの場面。\n\n### 2) そのときの流れを最初から思い出す\n「いつ」「どこで」「だれが」「何をしていた」を整理します。\n\n### 3) “決めた瞬間”をくわしく聞く（ここがポイント）\n- 何を見ていた？（相手の動き、味方の位置など）\n- 何が気になった？（危ないと思ったこと）\n- 何を一番大事にした？（守る、急ぐ、落ち着く）\n- ほかにどんな選び方があった？（別のパス、別の動き）\n\n### 4) もし違う条件だったら？も考える\n- もし雨だったら？\n- もし相手がもっと速かったら？\n- もし味方が別の場所にいたら？\n\nこうすると、**「こういうときはこうする」**がもっとはっきりします。\n\n---\n\n## たとえばこんな例（学校）\n### 例：登校中にあぶない場面があった\n「車が急に出てきそうで、止まった」  \n→ どうして止まれたのかを聞く\n\n- 何が見えた？（角のミラー、車の音、影）\n- 何に気づいた？（いつもより車の音が近い）\n- 何を選んだ？（走らず止まる、右左を見る）\n- ほかの手もあった？（横断しないで待つ）\n\nこういう話から、**安全のコツ**が学べます。\n\n---\n\n## まとめ\nCritical Decision Methodは、  \n**「ピンチや大事な場面で、どうやって決めたのかを、あとからくわしくたどって学ぶ方法」**です。  \n上手な人の“頭の中のコツ”を見つけるのに役立ちます。\n\n必要なら、学年（低学年/高学年）に合わせて、もっとかんたんな言い方や、別の例（ゲーム、部活、算数の問題）でも説明します。",
+          "type": "output_text",
+          "logprobs": []
+        }
+      ],
+      "role": "assistant",
+      "status": "completed",
+      "type": "message",
+      "phase": null
+    }
+  ],
+  "parallel_tool_calls": true,
+  "temperature": 1.0,
+  "tool_choice": "auto",
+  "tools": [],
+  "top_p": 0.98,
+  "background": false,
+  "completed_at": 1772066354.0,
+  "conversation": null,
+  "max_output_tokens": null,
+  "max_tool_calls": null,
+  "previous_response_id": null,
+  "prompt": null,
+  "prompt_cache_key": null,
+  "prompt_cache_retention": null,
+  "reasoning": {
+    "effort": "high",
+    "generate_summary": null,
+    "summary": "detailed"
+  },
+  "safety_identifier": null,
+  "service_tier": "default",
+  "status": "completed",
+  "text": {
+    "format": {
+      "type": "text"
+    },
+    "verbosity": "medium"
+  },
+  "top_logprobs": 0,
+  "truncation": "disabled",
+  "usage": {
+    "input_tokens": 21,
+    "input_tokens_details": {
+      "cached_tokens": 0
+    },
+    "output_tokens": 864,
+    "output_tokens_details": {
+      "reasoning_tokens": 35
+    },
+    "total_tokens": 885
+  },
+  "user": null,
+  "billing": {
+    "payer": "developer"
+  },
+  "frequency_penalty": 0.0,
+  "presence_penalty": 0.0,
+  "store": true
+}

@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 class GateDecision(BaseModel):
     """Represents the classification and reasoning from the Reflective Gate Chat."""
 
-    route: Literal["DEEPEN", "PARK", "CLARIFY"] = Field(
+    route: Literal["DEEPEN", "PARK", "CLARIFY", "FINISH"] = Field(
         description="The classification route for the user's input."
     )
     reason: str = Field(
