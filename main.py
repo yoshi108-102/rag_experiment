@@ -54,7 +54,7 @@ def main():
             
             if decision.route == "FINISH":
                 chat_logger.log_event("conversation_finished", route=decision.route, reason=decision.reason)
-                break
+                continue
             
         except KeyboardInterrupt:
             chat_logger.log_event("conversation_interrupted")

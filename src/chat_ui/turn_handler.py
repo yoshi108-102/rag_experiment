@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from src.agents.gate import analyze_input
+from src.agents.gate import analyze_input, build_clarify_completion_json
 from src.chat_ui.constants import BOUNDARY_ROUTES, RAG_ELIGIBLE_ROUTES
 from src.chat_ui.rag_policy import (
     build_buffered_idea_query,
@@ -28,6 +28,7 @@ class TurnResult:
 def handle_user_turn(prompt: str, session_state: Any) -> TurnResult:
     decision, reasoning = analyze_input(prompt, list(session_state.llm_context))
     response = execute_route(decision)
+    clarify_json = build_clarify_completion_json(prompt, list(session_state.llm_context))
 
     update_idea_buffer(session_state, prompt, decision.route)
     rag_debug = _build_rag_debug(session_state, decision.route)
@@ -37,6 +38,7 @@ def handle_user_turn(prompt: str, session_state: Any) -> TurnResult:
         "reason": decision.reason,
         "reasoning": reasoning,
         "rag": rag_debug,
+        "clarify_json": clarify_json,
     }
 
     return TurnResult(
