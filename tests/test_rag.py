@@ -1,9 +1,9 @@
 import json
 
 from src.rag.models import KnowledgeRecord, NoveltyDecision, RetrievalResult
-from src.rag.novelty import judge_novelty
-from src.rag.retriever import retrieve_similar
-from src.rag.store import save_pending_reflection
+from src.rag.novelty_rules import assess_novelty
+from src.rag.pending_reflection_store import store_pending_reflection
+from src.rag.record_search import search_similar_records
 
 
 def sample_records() -> list[KnowledgeRecord]:
@@ -33,43 +33,43 @@ def sample_records() -> list[KnowledgeRecord]:
     ]
 
 
-def test_retrieve_similar_returns_relevant_match():
+def test_search_similar_records_returns_relevant_match():
     records = sample_records()
-    results = retrieve_similar("太い棒の見方で迷ってる", records, top_k=2)
+    results = search_similar_records("太い棒の見方で迷ってる", records, top_k=2)
 
     assert results
     assert results[0].record.record_id == "1"
     assert results[0].score > 0
 
 
-def test_judge_novelty_marks_non_novel_for_high_score():
+def test_assess_novelty_marks_non_novel_for_high_score():
     record = sample_records()[0]
     retrieved = [RetrievalResult(record=record, score=0.72, reasons=["text-sim"])]
 
-    decision = judge_novelty("太い棒は離れて見る？", retrieved)
+    decision = assess_novelty("太い棒は離れて見る？", retrieved)
 
     assert decision.is_novel is False
     assert "threshold" in decision.reason
 
 
-def test_judge_novelty_marks_novel_when_no_hits():
-    decision = judge_novelty("全く別の新しい悩み", [])
+def test_assess_novelty_marks_novel_when_no_hits():
+    decision = assess_novelty("全く別の新しい悩み", [])
     assert decision.is_novel is True
 
 
-def test_save_pending_reflection_deduplicates(tmp_path):
+def test_store_pending_reflection_deduplicates(tmp_path):
     target = tmp_path / "pending_reflections.jsonl"
     novelty = NoveltyDecision(is_novel=True, confidence=0.8, reason="no similar")
     retrieved = []
 
-    first = save_pending_reflection(
+    first = store_pending_reflection(
         user_input="新しい疑問です",
         route="DEEPEN",
         novelty=novelty,
         retrieved=retrieved,
         path=target,
     )
-    second = save_pending_reflection(
+    second = store_pending_reflection(
         user_input="新しい疑問です",
         route="DEEPEN",
         novelty=novelty,

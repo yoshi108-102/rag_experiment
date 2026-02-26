@@ -43,7 +43,7 @@ def _tag_fragments(tags: list[str]) -> list[str]:
     return fragments
 
 
-def score_record(query: str, record: KnowledgeRecord) -> tuple[float, list[str]]:
+def score_record_match(query: str, record: KnowledgeRecord) -> tuple[float, list[str]]:
     q = _normalize(query)
     if not q:
         return 0.0, []
@@ -92,7 +92,7 @@ def score_record(query: str, record: KnowledgeRecord) -> tuple[float, list[str]]
     return min(score, 1.0), reasons
 
 
-def retrieve_similar(
+def search_similar_records(
     query: str,
     records: list[KnowledgeRecord],
     top_k: int = 3,
@@ -100,10 +100,14 @@ def retrieve_similar(
 ) -> list[RetrievalResult]:
     results: list[RetrievalResult] = []
     for record in records:
-        score, reasons = score_record(query, record)
+        score, reasons = score_record_match(query, record)
         if score >= min_score:
             results.append(RetrievalResult(record=record, score=score, reasons=reasons))
 
     results.sort(key=lambda item: item.score, reverse=True)
     return results[:top_k]
 
+
+# Backward-compatible aliases while callers migrate.
+score_record = score_record_match
+retrieve_similar = search_similar_records

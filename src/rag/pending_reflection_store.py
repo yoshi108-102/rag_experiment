@@ -7,7 +7,7 @@ from pathlib import Path
 from src.rag.models import NoveltyDecision, RetrievalResult
 
 
-def default_pending_store_path() -> Path:
+def default_pending_reflections_path() -> Path:
     return (
         Path(__file__).resolve().parent.parent.parent
         / "datasets"
@@ -41,14 +41,14 @@ def _load_existing_signatures(path: Path) -> set[tuple[str, str]]:
     return signatures
 
 
-def save_pending_reflection(
+def store_pending_reflection(
     user_input: str,
     route: str,
     novelty: NoveltyDecision,
     retrieved: list[RetrievalResult],
     path: str | Path | None = None,
 ) -> bool:
-    target = Path(path) if path else default_pending_store_path()
+    target = Path(path) if path else default_pending_reflections_path()
     _ensure_parent(target)
 
     signature = (route.strip(), user_input.strip())
@@ -71,3 +71,7 @@ def save_pending_reflection(
         f.write(json.dumps(payload, ensure_ascii=False) + "\n")
     return True
 
+
+# Backward-compatible aliases while callers migrate.
+default_pending_store_path = default_pending_reflections_path
+save_pending_reflection = store_pending_reflection
