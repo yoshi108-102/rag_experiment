@@ -3,7 +3,7 @@ from __future__ import annotations
 from src.rag.models import NoveltyDecision, RetrievalResult
 
 
-def judge_novelty(
+def assess_novelty(
     query: str,
     retrieved: list[RetrievalResult],
     novelty_threshold: float = 0.38,
@@ -38,3 +38,6 @@ def judge_novelty(
         reason=f"top match score {top.score:.2f} < threshold",
     )
 
+
+# Backward-compatible alias while callers migrate.
+judge_novelty = assess_novelty

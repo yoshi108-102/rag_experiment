@@ -6,7 +6,7 @@ from pathlib import Path
 from src.rag.models import KnowledgeRecord
 
 
-def default_consolidated_path() -> Path:
+def default_consolidated_knowledge_path() -> Path:
     return (
         Path(__file__).resolve().parent.parent.parent
         / "datasets"
@@ -15,8 +15,10 @@ def default_consolidated_path() -> Path:
     )
 
 
-def load_knowledge_records(path: str | Path | None = None) -> list[KnowledgeRecord]:
-    source_path = Path(path) if path else default_consolidated_path()
+def load_consolidated_knowledge_records(
+    path: str | Path | None = None,
+) -> list[KnowledgeRecord]:
+    source_path = Path(path) if path else default_consolidated_knowledge_path()
     if not source_path.exists():
         return []
 
@@ -88,3 +90,7 @@ def load_knowledge_records(path: str | Path | None = None) -> list[KnowledgeReco
 
     return records
 
+
+# Backward-compatible aliases while callers migrate.
+default_consolidated_path = default_consolidated_knowledge_path
+load_knowledge_records = load_consolidated_knowledge_records

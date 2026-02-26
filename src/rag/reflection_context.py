@@ -2,15 +2,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from src.rag.loader import load_knowledge_records
+from src.rag.knowledge_reader import load_consolidated_knowledge_records
 from src.rag.models import NoveltyDecision, RetrievalResult
-from src.rag.novelty import judge_novelty
-from src.rag.retriever import retrieve_similar
-from src.rag.store import save_pending_reflection
+from src.rag.novelty_rules import assess_novelty
+from src.rag.pending_reflection_store import store_pending_reflection
+from src.rag.record_search import search_similar_records
 
 
 @dataclass(frozen=True)
-class RagAnalysis:
+class ReflectionContextAnalysis:
     enabled: bool
     retrieved: list[RetrievalResult]
     novelty: NoveltyDecision | None
@@ -27,45 +27,50 @@ class RagAnalysis:
         }
 
 
-def analyze_with_rag(
+def analyze_reflection_context(
     user_input: str,
     route: str,
     *,
     allowed_routes: tuple[str, ...] = ("DEEPEN", "CLARIFY"),
     top_k: int = 3,
-) -> RagAnalysis:
+) -> ReflectionContextAnalysis:
     if route not in allowed_routes:
-        return RagAnalysis(
+        return ReflectionContextAnalysis(
             enabled=False,
             retrieved=[],
             novelty=None,
             skipped_reason=f"route {route} not eligible",
         )
 
-    records = load_knowledge_records()
+    records = load_consolidated_knowledge_records()
     if not records:
-        return RagAnalysis(
+        return ReflectionContextAnalysis(
             enabled=False,
             retrieved=[],
             novelty=None,
             skipped_reason="no knowledge records found",
         )
 
-    retrieved = retrieve_similar(user_input, records, top_k=top_k)
-    novelty = judge_novelty(user_input, retrieved)
+    retrieved = search_similar_records(user_input, records, top_k=top_k)
+    novelty = assess_novelty(user_input, retrieved)
     saved_pending = False
 
     if novelty.is_novel:
-        saved_pending = save_pending_reflection(
+        saved_pending = store_pending_reflection(
             user_input=user_input,
             route=route,
             novelty=novelty,
             retrieved=retrieved,
         )
 
-    return RagAnalysis(
+    return ReflectionContextAnalysis(
         enabled=True,
         retrieved=retrieved,
         novelty=novelty,
         saved_pending=saved_pending,
     )
+
+
+# Backward-compatible aliases while callers migrate.
+RagAnalysis = ReflectionContextAnalysis
+analyze_with_rag = analyze_reflection_context

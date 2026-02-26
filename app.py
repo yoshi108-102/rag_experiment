@@ -207,12 +207,7 @@ if prompt := st.chat_input("考えたことや悩みを入力してください.
     with st.chat_message("assistant"):
         with st.spinner("思考のトリアージ中..."):
             try:
-                # Step 1: Analyze input using the Gate Model
-                decision, reasoning = analyze_input(prompt, list(st.session_state.llm_context))
-                
-                # Step 2: Execute the routing logic Based on the decision
-                response = execute_route(decision)
-                update_idea_buffer(prompt, decision.route)
+                turn_result = handle_user_turn(prompt, st.session_state)
 
                 rag_debug = {
                     "enabled": False,
