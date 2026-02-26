@@ -22,7 +22,7 @@ def main():
                 continue
                 
             # Step 1: Analyze input using the Gate Model
-            decision = analyze_input(user_input)
+            decision, reasoning = analyze_input(user_input)
             
             # Step 2: Execute the routing logic Based on the decision
             response = execute_route(decision)

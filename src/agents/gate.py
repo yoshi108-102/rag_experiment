@@ -36,70 +36,79 @@ def analyze_input(user_input: str, chat_context: list = None) -> tuple[GateDecis
     Analyzes the user input and returns a classification decision along with the 
     reasoning content if available. Optionally takes recent chat context (pre-sized).
     """
-    from openai import OpenAI
     import json
+    from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
     
-    client = OpenAI()
     system_prompt = load_gate_prompt()
     
-    messages = [{"role": "system", "content": system_prompt}]
+    messages = [SystemMessage(content=system_prompt)]
     
     if chat_context:
-        # Pre-pend chat history context directly
         for msg in chat_context:
-            # We only send role and content to the API
-            if msg.get("role") in ["user", "assistant"]:
-                messages.append({"role": msg["role"], "content": msg["content"]})
+            if msg.get("role") == "user":
+                messages.append(HumanMessage(content=msg["content"]))
+            elif msg.get("role") == "assistant":
+                messages.append(AIMessage(content=msg["content"]))
                 
-    messages.append({"role": "user", "content": user_input})
+    messages.append(HumanMessage(content=user_input))
     
-    response = client.responses.create(
+    # Initialize ChatOpenAI with Reasoning support (Responses API)
+    llm = ChatOpenAI(
         model="gpt-5.2",
-        input=messages,
+        use_responses_api=True,
+        output_version="responses/v1",
         reasoning={
             "effort": "high",
             "summary": "detailed"
-        },
-        text={
-            "format": {
-                "type": "json_schema",
-                "name": "GateDecision",
-                "schema": {
-                    "type": "object",
-                    "properties": {
-                        "route": {"type": "string", "enum": ["DEEPEN", "PARK", "CLARIFY", "FINISH"]},
-                        "reason": {"type": "string"},
-                        "first_question": {"type": "string"}
-                    },
-                    "required": ["route", "reason", "first_question"],
-                    "additionalProperties": False
-                },
-                "strict": True
-            }
         }
     )
     
-    # Parse the new response format based on schema_ex.txt
+    # Define the JSON schema for Structured Outputs
+    schema = GateDecision.model_json_schema()
+    # OpenAI Structured Outputs (Strict) requires additionalProperties: False
+    schema["additionalProperties"] = False
+    
+    # Remove Pydantic-specific metadata that OpenAI might reject in strict mode
+    schema.pop("title", None)
+    schema.pop("description", None)
+    
+    gate_decision_schema = {
+        "type": "json_schema",
+        "json_schema": {
+            "name": "GateDecision",
+            "schema": schema,
+            "strict": True
+        }
+    }
+    
+    # Invoke the LLM with direct response_format to enforce Structured Outputs
+    response = llm.invoke(messages, response_format=gate_decision_schema)
+    
     reasoning = None
     msg_content_json = None
     
-    response_dict = json.loads(response.model_dump_json())
-    for item in response_dict.get("output", []):
-        if item.get("type") == "reasoning":
-            summary = item.get("summary", [])
-            if summary and len(summary) > 0:
-                reasoning = summary[0].get("text")
-        elif item.get("type") == "message":
-            content_list = item.get("content", [])
-            if content_list and len(content_list) > 0:
-                msg_content_json = content_list[0].get("text")
+    # Parse the content blocks from AIMessage
+    if isinstance(response.content, list):
+        for block in response.content:
+            if isinstance(block, dict):
+                if block.get("type") == "reasoning":
+                    summary_list = block.get("summary", [])
+                    if summary_list and len(summary_list) > 0:
+                        reasoning = summary_list[0].get("text")
+                elif block.get("type") == "text":
+                    msg_content_json = block.get("text")
+    elif isinstance(response.content, str):
+        msg_content_json = response.content
 
-    from src.core.models import GateDecision
+    # Use Pydantic to validate and parse the JSON structure directly
     if msg_content_json:
-        decision = GateDecision(**json.loads(msg_content_json))
+        try:
+            decision = GateDecision.model_validate_json(msg_content_json)
+        except Exception as e:
+            print(f"[Gate Error] Pydantic validation failed: {e}")
+            decision = GateDecision(route="PARK", reason="Pydantic validation failed", first_question="解析エラーが発生しました。")
     else:
-        # Fallback if parsing fails for some reason
-        decision = GateDecision(route="PARK", reason="Error parsing LLM output", first_question="エラーが発生しました。")
+        decision = GateDecision(route="PARK", reason="No response content", first_question="応答が得られませんでした。")
     
     # Translate reasoning to Japanese
     if reasoning:

@@ -1,5 +1,7 @@
 import os
-from openai import OpenAI
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import HumanMessage, SystemMessage
+
 
 def translate_reasoning_to_japanese(reasoning_text: str) -> str | None:
     """
@@ -9,7 +11,7 @@ def translate_reasoning_to_japanese(reasoning_text: str) -> str | None:
     if not reasoning_text:
         return None
         
-    client = OpenAI()
+    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3)
     
     system_prompt = (
         "You are an expert translator. "
@@ -18,17 +20,12 @@ def translate_reasoning_to_japanese(reasoning_text: str) -> str | None:
     )
     
     try:
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": reasoning_text}
-            ],
-            temperature=0.3  # Keep it relatively deterministic
-        )
+        response = llm.invoke([
+            SystemMessage(content=system_prompt),
+            HumanMessage(content=reasoning_text)
+        ])
         
-        translated_text = response.choices[0].message.content
-        return translated_text
+        return str(response.content)
         
     except Exception as e:
         print(f"[Translator Error] Failed to translate reasoning: {e}")

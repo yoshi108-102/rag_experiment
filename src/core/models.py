@@ -14,3 +14,7 @@ class GateDecision(BaseModel):
     first_question: str = Field(
         description="The follow-up probing question to ask the user."
     )
+
+    model_config = {
+        "extra": "forbid"
+    }
