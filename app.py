@@ -2,6 +2,7 @@ import streamlit as st
 from dotenv import load_dotenv
 from src.agents.gate import analyze_input
 from src.routing.router import execute_route
+import collections
 
 # Load environment variables
 load_dotenv()
@@ -19,6 +20,15 @@ if "messages" not in st.session_state:
         "role": "assistant",
         "content": "お疲れ様です！本日の作業はどうでしたか？何か気になったことや、迷った瞬間はありましたか？",
         "debug_info": None
+    })
+
+# Initialize LLM context window (deque) directly retaining only role and content
+if "llm_context" not in st.session_state:
+    st.session_state.llm_context = collections.deque(maxlen=10)
+    # Also add the initial AI greeting to the context window
+    st.session_state.llm_context.append({
+        "role": "assistant",
+        "content": "お疲れ様です！本日の作業はどうでしたか？何か気になったことや、迷った瞬間はありましたか？"
     })
 
 # Display chat messages from history on app rerun
@@ -40,13 +50,14 @@ if prompt := st.chat_input("考えたことや悩みを入力してください.
     
     # Add user message to chat history
     st.session_state.messages.append({"role": "user", "content": prompt, "debug_info": None})
+    st.session_state.llm_context.append({"role": "user", "content": prompt})
 
     # Display assistant response in chat message container
     with st.chat_message("assistant"):
         with st.spinner("思考のトリアージ中..."):
             try:
                 # Step 1: Analyze input using the Gate Model
-                decision, reasoning = analyze_input(prompt)
+                decision, reasoning = analyze_input(prompt, list(st.session_state.llm_context))
                 
                 # Step 2: Execute the routing logic Based on the decision
                 response = execute_route(decision)
@@ -74,6 +85,10 @@ if prompt := st.chat_input("考えたことや悩みを入力してください.
                     "role": "assistant",
                     "content": response,
                     "debug_info": debug_info
+                })
+                st.session_state.llm_context.append({
+                    "role": "assistant",
+                    "content": response
                 })
                 
                 if decision.route == "FINISH":

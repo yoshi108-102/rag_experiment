@@ -3,6 +3,7 @@ from pathlib import Path
 from langchain_openai import ChatOpenAI
 
 from src.core.models import GateDecision
+from src.agents.translator import translate_reasoning_to_japanese
 
 
 def load_gate_prompt() -> str:
@@ -30,10 +31,10 @@ def load_gate_prompt() -> str:
     return prompt
 
 
-def analyze_input(user_input: str) -> tuple[GateDecision, str | None]:
+def analyze_input(user_input: str, chat_context: list = None) -> tuple[GateDecision, str | None]:
     """
     Analyzes the user input and returns a classification decision along with the 
-    reasoning content if available.
+    reasoning content if available. Optionally takes recent chat context (pre-sized).
     """
     from openai import OpenAI
     import json
@@ -41,19 +42,27 @@ def analyze_input(user_input: str) -> tuple[GateDecision, str | None]:
     client = OpenAI()
     system_prompt = load_gate_prompt()
     
+    messages = [{"role": "system", "content": system_prompt}]
+    
+    if chat_context:
+        # Pre-pend chat history context directly
+        for msg in chat_context:
+            # We only send role and content to the API
+            if msg.get("role") in ["user", "assistant"]:
+                messages.append({"role": msg["role"], "content": msg["content"]})
+                
+    messages.append({"role": "user", "content": user_input})
+    
     response = client.responses.create(
         model="gpt-5.2",
-        input=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_input}
-        ],
+        input=messages,
         reasoning={
             "effort": "high",
             "summary": "detailed"
         },
-        response_format={
-            "type": "json_schema",
-            "json_schema": {
+        text={
+            "format": {
+                "type": "json_schema",
                 "name": "GateDecision",
                 "schema": {
                     "type": "object",
@@ -92,4 +101,8 @@ def analyze_input(user_input: str) -> tuple[GateDecision, str | None]:
         # Fallback if parsing fails for some reason
         decision = GateDecision(route="PARK", reason="Error parsing LLM output", first_question="エラーが発生しました。")
     
+    # Translate reasoning to Japanese
+    if reasoning:
+        reasoning = translate_reasoning_to_japanese(reasoning)
+
     return decision, reasoning
