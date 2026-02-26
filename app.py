@@ -4,6 +4,7 @@ from src.agents.gate import analyze_input
 from src.routing.router import execute_route
 from src.rag import analyze_with_rag
 from src.core.chat_logging import ChatSessionLogger
+from src.chat_ui.turn_handler import handle_user_turn
 import collections
 import hashlib
 
@@ -208,37 +209,15 @@ if prompt := st.chat_input("考えたことや悩みを入力してください.
         with st.spinner("思考のトリアージ中..."):
             try:
                 turn_result = handle_user_turn(prompt, st.session_state)
-
-                rag_debug = {
+                response = turn_result.response
+                reasoning = turn_result.reasoning
+                debug_info = turn_result.debug_info
+                rag_debug = debug_info.get("rag") or {
                     "enabled": False,
-                    "skipped_reason": "not-triggered",
+                    "skipped_reason": "no-rag-debug",
                     "trigger": None,
                     "query": None,
                 }
-                should_rag, rag_trigger = should_run_rag(decision.route)
-                if should_rag:
-                    rag_query = build_buffered_idea_query()
-                    if should_skip_same_query(rag_query):
-                        rag_debug["skipped_reason"] = "same-or-too-short-query"
-                        rag_debug["trigger"] = rag_trigger
-                        rag_debug["query"] = rag_query
-                        clear_idea_buffer_if_boundary(decision.route)
-                    else:
-                        rag_analysis = analyze_with_rag(
-                            rag_query,
-                            decision.route,
-                            allowed_routes=("DEEPEN", "CLARIFY", "PARK", "FINISH"),
-                        )
-                        rag_debug = rag_analysis.to_dict()
-                        rag_debug["trigger"] = rag_trigger
-                        rag_debug["query"] = rag_query
-                        finalize_rag_run(
-                            rag_query,
-                            clear_buffer=decision.route in {"PARK", "FINISH"},
-                        )
-                else:
-                    rag_debug["skipped_reason"] = rag_trigger
-                    clear_idea_buffer_if_boundary(decision.route)
                 
                 # Render reasoning if available
                 if reasoning:
@@ -250,12 +229,6 @@ if prompt := st.chat_input("考えたことや悩みを入力してください.
                 render_rag_panel(rag_debug)
                 
                 # Render Debug Info
-                debug_info = {
-                    "route": decision.route,
-                    "reason": decision.reason,
-                    "reasoning": reasoning,
-                    "rag": rag_debug,
-                }
                 with st.expander("AI Routing Info (Debug)", expanded=False):
                     st.write(f"**Route:** {debug_info['route']}")
                     st.write(f"**Reason:** {debug_info['reason']}")
@@ -282,11 +255,11 @@ if prompt := st.chat_input("考えたことや悩みを入力してください.
                     "content": response
                 })
                 
-                if decision.route == "FINISH":
+                if turn_result.is_finished:
                     chat_logger.log_event(
                         "conversation_finished",
-                        route=decision.route,
-                        reason=decision.reason,
+                        route=debug_info["route"],
+                        reason=debug_info["reason"],
                     )
                     st.info("対話が終了しました。再開する場合はページをリロードしてください。")
                     
