@@ -4,6 +4,14 @@ from typing import Any
 
 import streamlit as st
 
+from src.core.token_usage import (
+    context_limit_source_label,
+    default_gate_model_name,
+    estimate_messages_tokens,
+    resolve_context_window_limit,
+    usage_ratio,
+)
+
 
 def render_rag_panel(rag_info: dict[str, Any] | None) -> None:
     if not rag_info or not rag_info.get("enabled"):
@@ -77,26 +85,37 @@ def render_chat_history(messages: list[dict[str, Any]]) -> None:
             if debug_info and debug_info.get("reasoning"):
                 render_reasoning_panel(debug_info["reasoning"])
             st.markdown(msg["content"])
+            _render_message_images(msg.get("images") or [])
             if debug_info:
                 render_rag_panel(debug_info.get("rag"))
                 render_route_debug_panel(debug_info)
 
 
-def render_rag_sidebar(messages: list[dict[str, Any]]) -> None:
-    with st.sidebar:
-        st.subheader("RAG Debug")
+def render_rag_sidebar(
+    messages: list[dict[str, Any]],
+    llm_context: list[dict[str, Any]],
+    system_prompt_text: str | None = None,
+) -> None:
+    latest_rag = None
+    latest_debug = None
+    for msg in reversed(messages):
+        if msg.get("role") != "assistant":
+            continue
+        debug_info = msg.get("debug_info") or {}
+        rag = debug_info.get("rag")
+        if rag is not None:
+            latest_rag = rag
+            latest_debug = debug_info
+            break
 
-        latest_rag = None
-        latest_debug = None
-        for msg in reversed(messages):
-            if msg.get("role") != "assistant":
-                continue
-            debug_info = msg.get("debug_info") or {}
-            rag = debug_info.get("rag")
-            if rag is not None:
-                latest_rag = rag
-                latest_debug = debug_info
-                break
+    with st.sidebar:
+        _render_context_window_panel(
+            llm_context,
+            latest_debug,
+            system_prompt_text=system_prompt_text,
+        )
+        st.divider()
+        st.subheader("RAG Debug")
 
         if latest_rag is None:
             st.info("まだRAG実行結果はありません。")
@@ -153,3 +172,90 @@ def render_rag_sidebar(messages: list[dict[str, Any]]) -> None:
                 st.write(record.get("text", ""))
                 if record.get("applicable_when"):
                     st.caption(f"適用条件: {record['applicable_when']}")
+
+
+def _render_context_window_panel(
+    llm_context: list[dict[str, Any]],
+    latest_debug: dict[str, Any] | None,
+    system_prompt_text: str | None = None,
+) -> None:
+    st.subheader("Context Window")
+
+    gate_model = default_gate_model_name()
+    limit_info = resolve_context_window_limit(gate_model)
+    st.caption(f"model: `{limit_info.model}`")
+    st.caption(f"上限の根拠: {context_limit_source_label(limit_info.source)}")
+
+    max_context_tokens = int(
+        st.number_input(
+            "想定上限 (tokens)",
+            min_value=4_096,
+            max_value=1_000_000,
+            value=min(1_000_000, max(4_096, limit_info.max_tokens)),
+            step=1_024,
+            key="context_window_limit_tokens",
+            help=(
+                "モデル既定値または環境変数から初期化されています。"
+                "必要なら手動で調整できます。"
+            ),
+        )
+    )
+
+    estimation_messages = list(llm_context)
+    if system_prompt_text:
+        estimation_messages = [
+            {"role": "system", "content": system_prompt_text},
+            *estimation_messages,
+        ]
+
+    estimated_tokens = estimate_messages_tokens(estimation_messages)
+    ratio = usage_ratio(estimated_tokens, max_context_tokens)
+    st.progress(
+        ratio,
+        text=(
+            f"推定: {estimated_tokens:,} / {max_context_tokens:,} "
+            f"tokens ({ratio * 100:.1f}%)"
+        ),
+    )
+    st.caption("推定値は system prompt を含む文字数ベースの近似です。")
+
+    token_usage = (latest_debug or {}).get("token_usage") or {}
+    input_tokens = token_usage.get("input_tokens")
+    output_tokens = token_usage.get("output_tokens")
+    total_tokens = token_usage.get("total_tokens")
+    if input_tokens is None and output_tokens is None and total_tokens is None:
+        st.caption("実測 token usage は最初の応答生成後に表示されます。")
+        return
+
+    st.markdown("**Latest API Usage (実測)**")
+    usage_payload: dict[str, int] = {}
+    if input_tokens is not None:
+        usage_payload["input_tokens"] = input_tokens
+    if output_tokens is not None:
+        usage_payload["output_tokens"] = output_tokens
+    if total_tokens is not None:
+        usage_payload["total_tokens"] = total_tokens
+    st.write(usage_payload)
+
+
+def _render_message_images(images: list[dict[str, Any]]) -> None:
+    valid_images: list[dict[str, Any]] = []
+    for image in images:
+        data = image.get("data")
+        if not isinstance(data, (bytes, bytearray)):
+            continue
+        valid_images.append(
+            {
+                "data": bytes(data),
+                "name": str(image.get("name", "image")),
+            }
+        )
+
+    if not valid_images:
+        return
+
+    st.image(
+        [image["data"] for image in valid_images],
+        caption=[image["name"] for image in valid_images],
+        use_container_width=True,
+    )

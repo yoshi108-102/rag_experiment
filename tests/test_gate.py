@@ -1,4 +1,3 @@
-import pytest
 import json
 from unittest.mock import patch, MagicMock
 from langchain_core.messages import AIMessage, HumanMessage
@@ -24,7 +23,7 @@ def test_load_gate_prompt():
 def test_analyze_input(mock_translate, mock_chatopenai):
     """
     Test the analyze_input function by mocking the ChatOpenAI response.
-    Ensures that it returns a (GateDecision, reasoning) tuple.
+    Ensures that it returns (GateDecision, reasoning, token_usage).
     """
     # Create the mock decision JSON
     mock_decision_dict = {
@@ -45,6 +44,11 @@ def test_analyze_input(mock_translate, mock_chatopenai):
         {"type": "reasoning", "summary": [{"text": mock_reasoning_text}]},
         {"type": "text", "text": mock_decision_json}
     ]
+    mock_response.usage_metadata = {
+        "input_tokens": 321,
+        "output_tokens": 47,
+        "total_tokens": 368,
+    }
     
     # Configure the mock LLM
     mock_llm_instance = MagicMock()
@@ -52,13 +56,18 @@ def test_analyze_input(mock_translate, mock_chatopenai):
     mock_llm_instance.invoke.return_value = mock_response
 
     # Call the function
-    decision, reasoning = analyze_input("うーん、この設計でいいのか少し迷っています。")
+    decision, reasoning, token_usage = analyze_input("うーん、この設計でいいのか少し迷っています。")
 
     # Assertions
     assert isinstance(decision, GateDecision)
     assert decision.route == "DEEPEN"
     assert decision.reason == "User shows uncertainty."
     assert reasoning == mock_translated_reasoning
+    assert token_usage == {
+        "input_tokens": 321,
+        "output_tokens": 47,
+        "total_tokens": 368,
+    }
     
     # Verify the mock was called
     mock_llm_instance.invoke.assert_called_once()
@@ -102,6 +111,57 @@ def test_analyze_input_does_not_duplicate_latest_user_message(mock_translate, mo
         if isinstance(m, HumanMessage) and m.content == current_user_input
     ]
     assert len(human_messages) == 1
+
+
+@patch('src.agents.gate.ChatOpenAI')
+@patch('src.agents.gate.translate_reasoning_to_japanese')
+def test_analyze_input_includes_image_block_for_latest_user_message(mock_translate, mock_chatopenai):
+    mock_translate.return_value = None
+
+    mock_decision_json = json.dumps({
+        "route": "CLARIFY",
+        "reason": "Need clarification",
+        "first_question": "画像のどの部分が気になりましたか？",
+    })
+
+    mock_response = MagicMock(spec=AIMessage)
+    mock_response.content = [{"type": "text", "text": mock_decision_json}]
+
+    captured_messages = {}
+
+    def fake_invoke(messages, response_format=None):
+        captured_messages["messages"] = messages
+        return mock_response
+
+    mock_llm_instance = MagicMock()
+    mock_chatopenai.return_value = mock_llm_instance
+    mock_llm_instance.invoke.side_effect = fake_invoke
+
+    current_user_input = "この画像の内容について考えたいです"
+    analyze_input(
+        current_user_input,
+        chat_context=[
+            {"role": "assistant", "content": "何が気になったか教えてください。"},
+            {"role": "user", "content": current_user_input},
+        ],
+        user_images=[
+            {
+                "name": "sample.png",
+                "mime_type": "image/png",
+                "data_base64": "aGVsbG8=",
+            }
+        ],
+    )
+
+    human_messages = [
+        m for m in captured_messages["messages"] if isinstance(m, HumanMessage)
+    ]
+    assert len(human_messages) == 1
+    assert isinstance(human_messages[0].content, list)
+    blocks = human_messages[0].content
+    assert blocks[0]["type"] == "text"
+    assert blocks[1]["type"] == "image_url"
+    assert blocks[1]["image_url"]["url"].startswith("data:image/png;base64,")
 
 
 def test_apply_decision_overrides_forces_finish_on_closure_intent():
