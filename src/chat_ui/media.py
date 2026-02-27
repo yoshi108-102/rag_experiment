@@ -1,3 +1,5 @@
+"""チャット投稿に含まれる画像ファイルの抽出・正規化・変換処理を担う。"""
+
 from __future__ import annotations
 
 import base64
@@ -10,6 +12,7 @@ IMAGE_ONLY_GATE_PROMPT = "画像を送信しました。画像の内容を踏ま
 
 
 def extract_chat_submission(submission: Any) -> tuple[str, list[dict[str, Any]]]:
+    """投稿オブジェクトからテキストと画像一覧を抽出する。"""
     if submission is None:
         return "", []
 
@@ -27,6 +30,7 @@ def extract_chat_submission(submission: Any) -> tuple[str, list[dict[str, Any]]]
 
 
 def normalize_display_text(text: str, images: list[dict[str, Any]]) -> str:
+    """画面表示用テキストを正規化し、画像のみ投稿時の代替文言を返す。"""
     normalized = (text or "").strip()
     if normalized:
         return normalized
@@ -36,6 +40,7 @@ def normalize_display_text(text: str, images: list[dict[str, Any]]) -> str:
 
 
 def normalize_gate_text(text: str, images: list[dict[str, Any]]) -> str:
+    """Gate判定へ渡す入力テキストを正規化する。"""
     normalized = (text or "").strip()
     if normalized:
         return normalized
@@ -45,6 +50,7 @@ def normalize_gate_text(text: str, images: list[dict[str, Any]]) -> str:
 
 
 def build_image_log_payload(images: list[dict[str, Any]]) -> dict[str, Any]:
+    """ログ保存向けに画像メタ情報を集約する。"""
     return {
         "image_count": len(images),
         "image_names": [str(image.get("name", "")) for image in images],
@@ -54,6 +60,7 @@ def build_image_log_payload(images: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def build_llm_image_payload(images: list[dict[str, Any]]) -> list[dict[str, str]]:
+    """画像バイナリをLLM入力向けBase64ペイロードへ変換する。"""
     payloads: list[dict[str, str]] = []
     for image in images:
         data = image.get("data")
@@ -73,6 +80,7 @@ def build_llm_image_payload(images: list[dict[str, Any]]) -> list[dict[str, str]
 
 
 def _to_image_payload(uploaded_file: Any) -> dict[str, Any] | None:
+    """アップロードファイルを内部画像形式へ変換し、非画像は除外する。"""
     if uploaded_file is None:
         return None
 

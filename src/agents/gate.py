@@ -1,7 +1,10 @@
+"""ユーザー入力をGateルートへ分類し、補助ルールで最終判定を整える処理群。"""
+
 from pathlib import Path
 import re
 from typing import Any
 
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 
 from src.core.models import GateDecision
@@ -69,12 +72,15 @@ CAUSAL_CONNECTOR_PATTERNS = (
 )
 
 IMAGE_FALLBACK_TEXT = "添付画像を見て会話を続けたいです。"
+PARK_PARSE_ERROR_MESSAGE = "解析エラーが発生しました。"
+PARK_NO_CONTENT_MESSAGE = "応答が得られませんでした。"
 
 
 def _build_human_message_content(
     text: str,
     images: list[dict[str, str]] | None = None,
 ) -> str | list[dict[str, Any]]:
+    """テキストと画像群をResponses API向けのHumanMessage形式へ整形する。"""
     normalized_text = (text or "").strip()
     if not images:
         return normalized_text
@@ -101,11 +107,124 @@ def _build_human_message_content(
     return content_blocks
 
 
+def _build_chat_messages(
+    system_prompt: str,
+    user_input: str,
+    chat_context: list | None = None,
+    user_images: list[dict[str, str]] | None = None,
+) -> list[SystemMessage | HumanMessage | AIMessage]:
+    """system/context/current入力からLLM送信用メッセージ列を構築する。"""
+    latest_context_is_same_user_input = bool(
+        chat_context
+        and chat_context[-1].get("role") == "user"
+        and chat_context[-1].get("content") == user_input
+    )
+    latest_context_index = (len(chat_context) - 1) if chat_context else -1
+
+    messages: list[SystemMessage | HumanMessage | AIMessage] = [
+        SystemMessage(content=system_prompt)
+    ]
+    if chat_context:
+        for idx, msg in enumerate(chat_context):
+            if msg.get("role") == "user":
+                msg_images: list[dict[str, str]] | None = None
+                if (
+                    idx == latest_context_index
+                    and latest_context_is_same_user_input
+                    and user_images
+                ):
+                    msg_images = user_images
+
+                messages.append(
+                    HumanMessage(
+                        content=_build_human_message_content(
+                            str(msg.get("content", "")),
+                            msg_images,
+                        )
+                    )
+                )
+            elif msg.get("role") == "assistant":
+                messages.append(AIMessage(content=str(msg.get("content", ""))))
+
+    if not latest_context_is_same_user_input:
+        messages.append(
+            HumanMessage(content=_build_human_message_content(user_input, user_images))
+        )
+    return messages
+
+
+def _build_gate_decision_schema() -> dict[str, Any]:
+    """GateDecision用のStructured Outputsスキーマを生成する。"""
+    schema = GateDecision.model_json_schema()
+    schema["additionalProperties"] = False
+    schema.pop("title", None)
+    schema.pop("description", None)
+
+    return {
+        "type": "json_schema",
+        "json_schema": {
+            "name": "GateDecision",
+            "schema": schema,
+            "strict": True,
+        },
+    }
+
+
+def _extract_reasoning_and_decision_json(
+    response_content: Any,
+) -> tuple[str | None, str | None]:
+    """LLMレスポンスからreasoning要約と判定JSON文字列を抽出する。"""
+    reasoning = None
+    msg_content_json = None
+
+    if isinstance(response_content, list):
+        for block in response_content:
+            if not isinstance(block, dict):
+                continue
+            if block.get("type") == "reasoning":
+                summary_list = block.get("summary", [])
+                if summary_list and len(summary_list) > 0:
+                    reasoning = summary_list[0].get("text")
+            elif block.get("type") == "text":
+                msg_content_json = block.get("text")
+    elif isinstance(response_content, str):
+        msg_content_json = response_content
+
+    return reasoning, msg_content_json
+
+
+def _park_decision(reason: str, first_question: str) -> GateDecision:
+    """PARKルートのフォールバック判定を作る。"""
+    return GateDecision(route="PARK", reason=reason, first_question=first_question)
+
+
+def _parse_decision_with_override(
+    msg_content_json: str | None,
+    user_input: str,
+    chat_context: list | None,
+) -> GateDecision:
+    """判定JSONを検証して読み込み、必要な後段overrideを適用する。"""
+    if msg_content_json:
+        try:
+            decision = GateDecision.model_validate_json(msg_content_json)
+            return _apply_decision_overrides(decision, user_input, chat_context)
+        except Exception as e:
+            print(f"[Gate Error] Pydantic validation failed: {e}")
+            return _park_decision(
+                "Pydantic validation failed",
+                PARK_PARSE_ERROR_MESSAGE,
+            )
+
+    return _park_decision("No response content", PARK_NO_CONTENT_MESSAGE)
+
+
 def _matches_any(text: str, patterns: tuple[str, ...]) -> bool:
+    """文字列が正規表現パターン群のいずれかに一致するかを返す。"""
     return any(re.search(pattern, text) for pattern in patterns)
 
 
 def _recent_user_texts(chat_context: list | None, limit: int = 4) -> list[str]:
+    """履歴から直近ユーザー発話のみを取り出す。"""
     if not chat_context:
         return []
     texts = [msg.get("content", "") for msg in chat_context if msg.get("role") == "user"]
@@ -113,6 +232,7 @@ def _recent_user_texts(chat_context: list | None, limit: int = 4) -> list[str]:
 
 
 def _last_assistant_text(chat_context: list | None) -> str:
+    """履歴上で最後のassistant発話を返す。"""
     if not chat_context:
         return ""
     for msg in reversed(chat_context):
@@ -122,6 +242,7 @@ def _last_assistant_text(chat_context: list | None) -> str:
 
 
 def _looks_like_confirmation_question(text: str) -> bool:
+    """確認質問らしい文かを簡易ヒューリスティックで判定する。"""
     if not text:
         return False
     markers = ("つまり", "ってこと", "でいい", "かな", "ですか", "統一", "言い方")
@@ -129,10 +250,12 @@ def _looks_like_confirmation_question(text: str) -> bool:
 
 
 def _normalize_text_for_slots(text: str) -> str:
+    """slot抽出向けに空白と文末記号を削って正規化する。"""
     return re.sub(r"\s+", "", text or "").strip("。．!！")
 
 
 def _extract_causal_pair(text: str) -> tuple[str | None, str | None]:
+    """因果接続語を手掛かりに、理由と項目のペアを抽出する。"""
     compact = _normalize_text_for_slots(text)
     if not compact or len(compact) < 10:
         return None, None
@@ -161,6 +284,7 @@ def _extract_causal_pair(text: str) -> tuple[str | None, str | None]:
 
 
 def _is_meaningful_user_text(text: str) -> bool:
+    """短すぎる相槌を除外し、slot抽出対象として有効か判定する。"""
     compact = _normalize_text_for_slots(text)
     if len(compact) < 4:
         return False
@@ -170,6 +294,7 @@ def _is_meaningful_user_text(text: str) -> bool:
 
 
 def _infer_idea_or_question_kind(text: str) -> str | None:
+    """発話を`idea`または`question`のどちらかへ推定する。"""
     compact = _normalize_text_for_slots(text)
     if not compact:
         return None
@@ -182,13 +307,13 @@ def build_clarify_completion_json(
     user_input: str,
     chat_context: list | None = None,
 ) -> dict[str, str | bool | None]:
-    """
-    Rule-based CLARIFY slot extraction.
+    """CLARIFY完了判定のためのslotをルールベースで抽出する。
 
-    The CLARIFY phase is considered complete when the following JSON slots are filled:
-    - kind: "idea" or "question"
-    - item: the main idea/question the user is trying to convey
-    - reason: why that idea/question matters / what causes it
+    戻り値は以下の4キーを持つ:
+    - kind: `idea` または `question`
+    - item: ユーザーが伝えたい主題
+    - reason: その主題の背景理由
+    - is_complete: 上記3slotが揃っているか
     """
     user_texts = _recent_user_texts(chat_context, limit=6)
     if not user_texts or user_texts[-1] != user_input:
@@ -228,11 +353,10 @@ def _apply_decision_overrides(
     user_input: str,
     chat_context: list | None = None,
 ) -> GateDecision:
-    """
-    Post-processes the LLM decision with a small set of deterministic guardrails.
+    """LLM判定へ決定論的なガードレールを後適用する。
 
-    This primarily catches explicit "I feel done after talking" signals and routes
-    them to FINISH so the conversation can close without over-probing.
+    明示的な終了意図、苛立ち表現、CLARIFY完了条件を優先して
+    ルートを安全側へ補正する。
     """
     if decision.route == "FINISH":
         return decision
@@ -279,14 +403,10 @@ def _apply_decision_overrides(
 
 
 def load_gate_prompt() -> str:
-    """
-    Loads the system prompt used by the Gate Model.
-    
-    This prompt is defined in `prompts/gate_prompt.txt` and is responsible for
-    instructing the LLM to classify user input into DEEPEN, CLARIFY, or PARK,
-    and output a strictly formatted JSON conforming to the GateDecision model.
-    It enforces rules such as limiting the reason length and selecting from
-    specific question templates for the DEEPEN route.
+    """Gate判定に使用するsystem prompt本文を読み込む。
+
+    `prompts/gate_prompt.md`を基本プロンプトとして読み、
+    `prompts/overall.md`が存在する場合はドメイン前提文脈を追記する。
     """
     base_dir = Path(__file__).resolve().parent.parent.parent
     prompt_path = base_dir / "prompts" / "gate_prompt.md"
@@ -308,49 +428,17 @@ def analyze_input(
     chat_context: list | None = None,
     user_images: list[dict[str, str]] | None = None,
 ) -> tuple[GateDecision, str | None, dict[str, int] | None]:
+    """ユーザー入力を解析し、`GateDecision`と補助情報を返す。
+
+    Returns:
+        tuple[GateDecision, str | None, dict[str, int] | None]:
+            1) ルーティング判定
+            2) reasoning要約（翻訳後、無ければNone）
+            3) token usage辞書（取得できない場合はNone）
     """
-    Analyzes the user input and returns a classification decision along with the 
-    reasoning content if available. Optionally takes recent chat context (pre-sized).
-    If the latest chat_context entry already contains the current user input, it is
-    not appended again.
-    """
-    import json
-    from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
-    
     system_prompt = load_gate_prompt()
-    
-    latest_context_is_same_user_input = bool(
-        chat_context
-        and chat_context[-1].get("role") == "user"
-        and chat_context[-1].get("content") == user_input
-    )
-    latest_context_index = (len(chat_context) - 1) if chat_context else -1
+    messages = _build_chat_messages(system_prompt, user_input, chat_context, user_images)
 
-    messages = [SystemMessage(content=system_prompt)]
-
-    if chat_context:
-        for idx, msg in enumerate(chat_context):
-            if msg.get("role") == "user":
-                msg_images: list[dict[str, str]] | None = None
-                if idx == latest_context_index and latest_context_is_same_user_input and user_images:
-                    msg_images = user_images
-
-                messages.append(
-                    HumanMessage(
-                        content=_build_human_message_content(
-                            str(msg.get("content", "")),
-                            msg_images,
-                        )
-                    )
-                )
-            elif msg.get("role") == "assistant":
-                messages.append(AIMessage(content=str(msg.get("content", ""))))
-
-    if not latest_context_is_same_user_input:
-        messages.append(
-            HumanMessage(content=_build_human_message_content(user_input, user_images))
-        )
-    
     # Initialize ChatOpenAI with Reasoning support (Responses API)
     llm = ChatOpenAI(
         model=default_gate_model_name(),
@@ -362,55 +450,15 @@ def analyze_input(
         }
     )
     
-    # Define the JSON schema for Structured Outputs
-    schema = GateDecision.model_json_schema()
-    # OpenAI Structured Outputs (Strict) requires additionalProperties: False
-    schema["additionalProperties"] = False
-    
-    # Remove Pydantic-specific metadata that OpenAI might reject in strict mode
-    schema.pop("title", None)
-    schema.pop("description", None)
-    
-    gate_decision_schema = {
-        "type": "json_schema",
-        "json_schema": {
-            "name": "GateDecision",
-            "schema": schema,
-            "strict": True
-        }
-    }
+    gate_decision_schema = _build_gate_decision_schema()
     
     # Invoke the LLM with direct response_format to enforce Structured Outputs
     response = llm.invoke(messages, response_format=gate_decision_schema)
     token_usage = extract_token_usage(response)
     
-    reasoning = None
-    msg_content_json = None
-    
-    # Parse the content blocks from AIMessage
-    if isinstance(response.content, list):
-        for block in response.content:
-            if isinstance(block, dict):
-                if block.get("type") == "reasoning":
-                    summary_list = block.get("summary", [])
-                    if summary_list and len(summary_list) > 0:
-                        reasoning = summary_list[0].get("text")
-                elif block.get("type") == "text":
-                    msg_content_json = block.get("text")
-    elif isinstance(response.content, str):
-        msg_content_json = response.content
+    reasoning, msg_content_json = _extract_reasoning_and_decision_json(response.content)
+    decision = _parse_decision_with_override(msg_content_json, user_input, chat_context)
 
-    # Use Pydantic to validate and parse the JSON structure directly
-    if msg_content_json:
-        try:
-            decision = GateDecision.model_validate_json(msg_content_json)
-            decision = _apply_decision_overrides(decision, user_input, chat_context)
-        except Exception as e:
-            print(f"[Gate Error] Pydantic validation failed: {e}")
-            decision = GateDecision(route="PARK", reason="Pydantic validation failed", first_question="解析エラーが発生しました。")
-    else:
-        decision = GateDecision(route="PARK", reason="No response content", first_question="応答が得られませんでした。")
-    
     # Translate reasoning to Japanese
     if reasoning:
         reasoning = translate_reasoning_to_japanese(reasoning)

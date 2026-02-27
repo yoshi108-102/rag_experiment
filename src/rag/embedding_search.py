@@ -1,3 +1,5 @@
+"""OpenAI Embeddingsを使った類似検索とベクトルキャッシュを提供する。"""
+
 from __future__ import annotations
 
 import hashlib
@@ -17,10 +19,12 @@ DEFAULT_EMBEDDING_MODEL = "text-embedding-3-small"
 
 
 class EmbeddingRetrieverError(RuntimeError):
-    """Raised when embedding retrieval cannot be executed."""
+    """埋め込み検索の実行条件を満たせないときに送出される例外。"""
 
 
 class TextEmbedder(Protocol):
+    """埋め込み器の最小インターフェース。"""
+
     def embed_query(self, text: str) -> list[float]: ...
 
     def embed_documents(self, texts: list[str]) -> list[list[float]]: ...
@@ -28,6 +32,8 @@ class TextEmbedder(Protocol):
 
 @dataclass(frozen=True)
 class EmbeddingSearchResult:
+    """埋め込み検索結果と使用モデル名を保持する。"""
+
     results: list[RetrievalResult]
     model: str
 
@@ -44,6 +50,7 @@ def search_similar_records_with_embeddings(
     model: str | None = None,
     embedder: TextEmbedder | None = None,
 ) -> EmbeddingSearchResult:
+    """埋め込みコサイン類似度でレコードを検索し、上位結果を返す。"""
     normalized_query = query.strip()
     if not normalized_query:
         return EmbeddingSearchResult(results=[], model=model or _resolve_embedding_model())
@@ -74,6 +81,7 @@ def search_similar_records_with_embeddings(
 
 
 def _build_openai_embedder(model: str) -> TextEmbedder:
+    """OpenAI APIキー検証付きで`OpenAIEmbeddings`を構築する。"""
     if not os.getenv("OPENAI_API_KEY"):
         raise EmbeddingRetrieverError("OPENAI_API_KEY is not set")
     try:
@@ -84,6 +92,7 @@ def _build_openai_embedder(model: str) -> TextEmbedder:
 
 
 def _resolve_embedding_model() -> str:
+    """環境変数を考慮して埋め込みモデル名を解決する。"""
     return os.getenv("RAG_EMBEDDING_MODEL", DEFAULT_EMBEDDING_MODEL).strip() or DEFAULT_EMBEDDING_MODEL
 
 
@@ -92,6 +101,7 @@ def _get_or_create_record_embeddings(
     model: str,
     embedder: TextEmbedder,
 ) -> list[list[float]]:
+    """レコード埋め込みをキャッシュから取得、無ければ生成して保存する。"""
     cache_key = _records_cache_key(records, model)
     cached = _RECORD_EMBEDDINGS_CACHE.get(cache_key)
     if cached is not None and len(cached) == len(records):
@@ -104,6 +114,7 @@ def _get_or_create_record_embeddings(
 
 
 def _records_cache_key(records: list[KnowledgeRecord], model: str) -> str:
+    """モデル名とレコード内容からキャッシュキーを生成する。"""
     payload = {
         "model": model,
         "records": [record.to_dict() for record in records],
@@ -113,6 +124,7 @@ def _records_cache_key(records: list[KnowledgeRecord], model: str) -> str:
 
 
 def _record_to_embedding_text(record: KnowledgeRecord) -> str:
+    """レコードを埋め込み入力向けの説明文へ整形する。"""
     parts = [
         f"topic: {record.topic}",
         f"type: {record.record_type}",
@@ -126,6 +138,7 @@ def _record_to_embedding_text(record: KnowledgeRecord) -> str:
 
 
 def _cosine_similarity(a: list[float], b: list[float]) -> float:
+    """2ベクトルのコサイン類似度を計算する。"""
     if not a or not b or len(a) != len(b):
         return 0.0
 

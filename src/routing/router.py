@@ -1,14 +1,13 @@
+"""Gate判定のroute値に応じて、返答文を選択・返却するルーティング処理。"""
+
 from src.core.models import GateDecision
 
 
 def execute_route(decision: GateDecision) -> str:
-    """
-    Executes the appropriate action based on the GateDecision.
+    """Gate判定に応じた応答文を返す。
 
-    Since this is a minimal implementation:
-    - DEEPEN: Returns the selected deep-dive question.
-    - CLARIFY: Returns the clarifying question.
-    - PARK: Logs the decision and returns the response (e.g., confirmation).
+    現状は最小実装として、全ルートで`first_question`を返しつつ、
+    デバッグ用に標準出力へroute/reasonを出力する。
     """
     route = decision.route
     

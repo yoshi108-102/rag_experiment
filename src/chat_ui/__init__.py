@@ -1,3 +1,5 @@
+"""Streamlitチャット画面で使う描画・状態管理・ターン処理を集約する公開API。"""
+
 from src.chat_ui.rendering import (
     render_chat_history,
     render_rag_panel,

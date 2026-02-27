@@ -1,3 +1,5 @@
+"""Streamlit画面での会話履歴・RAG情報・デバッグ情報を描画する関数群。"""
+
 from __future__ import annotations
 
 from typing import Any
@@ -14,6 +16,7 @@ from src.core.token_usage import (
 
 
 def render_rag_panel(rag_info: dict[str, Any] | None) -> None:
+    """メインチャット内にRAG結果の要約パネルを表示する。"""
     if not rag_info or not rag_info.get("enabled"):
         return
 
@@ -50,6 +53,7 @@ def render_rag_panel(rag_info: dict[str, Any] | None) -> None:
 
 
 def render_reasoning_panel(reasoning: str | None) -> None:
+    """Reasoning文字列がある場合に折りたたみパネルで表示する。"""
     if not reasoning:
         return
 
@@ -58,6 +62,7 @@ def render_reasoning_panel(reasoning: str | None) -> None:
 
 
 def render_route_debug_panel(debug_info: dict[str, Any] | None) -> None:
+    """route判定やRAGトリガー情報などのデバッグ項目を表示する。"""
     if not debug_info:
         return
 
@@ -79,6 +84,7 @@ def render_route_debug_panel(debug_info: dict[str, Any] | None) -> None:
 
 
 def render_chat_history(messages: list[dict[str, Any]]) -> None:
+    """保存済みメッセージ配列を順に描画し、各種補助パネルも併記する。"""
     for msg in messages:
         with st.chat_message(msg["role"]):
             debug_info = msg.get("debug_info")
@@ -96,6 +102,7 @@ def render_rag_sidebar(
     llm_context: list[dict[str, Any]],
     system_prompt_text: str | None = None,
 ) -> None:
+    """サイドバーに最新RAG詳細とコンテキスト使用量を表示する。"""
     latest_rag = None
     latest_debug = None
     for msg in reversed(messages):
@@ -179,6 +186,7 @@ def _render_context_window_panel(
     latest_debug: dict[str, Any] | None,
     system_prompt_text: str | None = None,
 ) -> None:
+    """推定token使用量と実測token usageを表示する。"""
     st.subheader("Context Window")
 
     gate_model = default_gate_model_name()
@@ -239,6 +247,7 @@ def _render_context_window_panel(
 
 
 def _render_message_images(images: list[dict[str, Any]]) -> None:
+    """メッセージ添付画像を表示可能な形式に整形して描画する。"""
     valid_images: list[dict[str, Any]] = []
     for image in images:
         data = image.get("data")

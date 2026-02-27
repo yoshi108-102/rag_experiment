@@ -1,12 +1,13 @@
-import os
+"""Gateモデルのreasoningテキストを日本語へ翻訳する補助処理。"""
+
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
 
 
 def translate_reasoning_to_japanese(reasoning_text: str) -> str | None:
-    """
-    Translates the AI's internal reasoning (which is usually in English) into natural Japanese.
-    Utilizes a fast LLM model like gpt-4o-mini for efficient translation.
+    """英語中心のreasoning要約を、日本語として読みやすい文章へ変換する。
+
+    翻訳に失敗した場合は会話継続を優先し、元テキストを返す。
     """
     if not reasoning_text:
         return None
@@ -29,5 +30,5 @@ def translate_reasoning_to_japanese(reasoning_text: str) -> str | None:
         
     except Exception as e:
         print(f"[Translator Error] Failed to translate reasoning: {e}")
-        # Fallback to the original text if translation fails
+        # 翻訳失敗時は機能停止を避けるため原文を返す。
         return reasoning_text

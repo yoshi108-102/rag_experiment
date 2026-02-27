@@ -1,3 +1,5 @@
+"""新規性が高い入力をpending JSONLへ重複排除付きで保存する。"""
+
 from __future__ import annotations
 
 import json
@@ -8,6 +10,7 @@ from src.rag.models import NoveltyDecision, RetrievalResult
 
 
 def default_pending_reflections_path() -> Path:
+    """pendingリフレクション保存先の既定パスを返す。"""
     return (
         Path(__file__).resolve().parent.parent.parent
         / "datasets"
@@ -17,10 +20,12 @@ def default_pending_reflections_path() -> Path:
 
 
 def _ensure_parent(path: Path) -> None:
+    """保存先ディレクトリが無ければ作成する。"""
     path.parent.mkdir(parents=True, exist_ok=True)
 
 
 def _load_existing_signatures(path: Path) -> set[tuple[str, str]]:
+    """既存JSONLを読み、(route, user_input)の重複判定キー集合を返す。"""
     if not path.exists():
         return set()
 
@@ -48,6 +53,7 @@ def store_pending_reflection(
     retrieved: list[RetrievalResult],
     path: str | Path | None = None,
 ) -> bool:
+    """pending候補を保存し、保存成功時のみ`True`を返す。"""
     target = Path(path) if path else default_pending_reflections_path()
     _ensure_parent(target)
 

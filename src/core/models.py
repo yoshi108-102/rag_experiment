@@ -1,9 +1,17 @@
+"""アプリケーション全体で利用するPydanticデータモデルを定義する。"""
+
 from typing import Literal
 from pydantic import BaseModel, Field
 
 
 class GateDecision(BaseModel):
-    """Represents the classification and reasoning from the Reflective Gate Chat."""
+    """Gateモデルの判定結果を表す構造化データ。
+
+    Attributes:
+        route: 入力の遷移先。深掘り・明確化・保留・終了のいずれか。
+        reason: その遷移を選んだ理由。
+        first_question: 次にユーザーへ返す最初の問いかけ文。
+    """
 
     route: Literal["DEEPEN", "PARK", "CLARIFY", "FINISH"] = Field(
         description="The classification route for the user's input."

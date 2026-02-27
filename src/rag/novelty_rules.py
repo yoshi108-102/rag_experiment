@@ -1,3 +1,5 @@
+"""検索結果スコアに基づき、入力内容の新規性を判定するルール群。"""
+
 from __future__ import annotations
 
 from src.rag.models import NoveltyDecision, RetrievalResult
@@ -8,6 +10,7 @@ def assess_novelty(
     retrieved: list[RetrievalResult],
     novelty_threshold: float = 0.38,
 ) -> NoveltyDecision:
+    """上位検索スコアと閾値を使って新規性を判定する。"""
     if not query.strip():
         return NoveltyDecision(
             is_novel=False,

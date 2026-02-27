@@ -1,3 +1,5 @@
+"""Streamlitの`session_state`に会話履歴とRAG補助状態を保持する処理群。"""
+
 from __future__ import annotations
 
 import collections
@@ -7,6 +9,7 @@ from src.chat_ui.constants import INITIAL_ASSISTANT_MESSAGE
 
 
 def initialize_session_state(session_state: Any) -> None:
+    """チャット開始時に必要なstateキーを初期化する。"""
     if "messages" not in session_state:
         session_state.messages = [
             {
@@ -42,6 +45,7 @@ def append_user_message(
     images: list[dict[str, Any]] | None = None,
     llm_content: str | None = None,
 ) -> None:
+    """ユーザーメッセージを表示履歴とLLMコンテキストへ追記する。"""
     message: dict[str, Any] = {"role": "user", "content": prompt, "debug_info": None}
     if images:
         message["images"] = _sanitize_images_for_state(images)
@@ -57,6 +61,7 @@ def append_assistant_message(
     content: str,
     debug_info: dict[str, Any],
 ) -> None:
+    """アシスタント応答とデバッグ情報を履歴へ追記する。"""
     session_state.messages.append(
         {
             "role": "assistant",
@@ -68,6 +73,7 @@ def append_assistant_message(
 
 
 def _sanitize_images_for_state(images: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """永続可能な画像メタ情報のみを抽出してstate保存用に整形する。"""
     sanitized_images: list[dict[str, Any]] = []
     for image in images:
         data = image.get("data")
