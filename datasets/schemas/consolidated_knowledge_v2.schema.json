@@ -1,0 +1,837 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zacitra.local/schemas/consolidated_knowledge_v2.schema.json",
+  "title": "Consolidated Knowledge Dataset v2",
+  "description": "Two-layer consolidated knowledge dataset for RAG: atomic records for retrieval and topic summaries for human-readable synthesis.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "dataset_meta",
+    "source_documents",
+    "records",
+    "topics",
+    "stats"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^2\\.[0-9]+$",
+      "description": "Schema major version 2.x for the consolidated dataset."
+    },
+    "dataset_meta": {
+      "$ref": "#/$defs/datasetMeta"
+    },
+    "source_documents": {
+      "type": "array",
+      "description": "Catalog of extracted source documents included in this consolidated dataset.",
+      "items": {
+        "$ref": "#/$defs/sourceDocument"
+      },
+      "uniqueItems": true
+    },
+    "records": {
+      "type": "array",
+      "description": "Atomic records used as the primary retrieval unit in RAG.",
+      "items": {
+        "$ref": "#/$defs/record"
+      }
+    },
+    "topics": {
+      "type": "array",
+      "description": "Human-readable consolidated topics that group records.",
+      "items": {
+        "$ref": "#/$defs/topic"
+      }
+    },
+    "stats": {
+      "$ref": "#/$defs/stats"
+    }
+  },
+  "$defs": {
+    "nonEmptyString": {
+      "type": "string",
+      "minLength": 1
+    },
+    "stringArrayUnique": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/nonEmptyString"
+      },
+      "uniqueItems": true
+    },
+    "confidenceLabel": {
+      "type": "string",
+      "enum": [
+        "high",
+        "medium",
+        "low"
+      ]
+    },
+    "confidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "score"
+      ],
+      "properties": {
+        "label": {
+          "$ref": "#/$defs/confidenceLabel"
+        },
+        "score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "charSpan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "start",
+        "end"
+      ],
+      "properties": {
+        "start": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "end": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "description": "Character offsets in the original source text (0-based, inclusive/exclusive convention defined by pipeline)."
+    },
+    "sourceRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_doc_id",
+        "source_item_path",
+        "source_text",
+        "page",
+        "char_span"
+      ],
+      "properties": {
+        "source_doc_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "source_item_path": {
+          "$ref": "#/$defs/nonEmptyString",
+          "description": "Path-like selector into the extracted source JSON (e.g. observations[3])."
+        },
+        "source_text": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "page": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "char_span": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "allOf": [
+            {
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "$ref": "#/$defs/charSpan"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "datasetMeta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dataset_id",
+        "language",
+        "generated_at",
+        "pipeline"
+      ],
+      "properties": {
+        "dataset_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "language": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "generated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "pipeline": {
+          "type": "object",
+          "description": "Pipeline metadata (model names, prompt versions, etc.).",
+          "additionalProperties": true,
+          "properties": {
+            "extractor_model": {
+              "type": "string"
+            },
+            "consolidator_model": {
+              "type": "string"
+            },
+            "extract_prompt_version": {
+              "type": "string"
+            },
+            "consolidate_prompt_version": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "sourceDocument": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_doc_id",
+        "source_file",
+        "source_type",
+        "observed_date",
+        "original_pdf",
+        "notes"
+      ],
+      "properties": {
+        "source_doc_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "source_file": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "source_type": {
+          "type": "string",
+          "enum": [
+            "pdf_extracted_json",
+            "manual_note_json",
+            "other"
+          ]
+        },
+        "observed_date": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date"
+        },
+        "original_pdf": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "notes": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "facetList": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/nonEmptyString"
+      },
+      "uniqueItems": true
+    },
+    "recordFacets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "target",
+        "phase",
+        "modality",
+        "object_size",
+        "equipment",
+        "environment",
+        "person"
+      ],
+      "properties": {
+        "target": {
+          "$ref": "#/$defs/facetList"
+        },
+        "phase": {
+          "$ref": "#/$defs/facetList"
+        },
+        "modality": {
+          "$ref": "#/$defs/facetList"
+        },
+        "object_size": {
+          "$ref": "#/$defs/facetList"
+        },
+        "equipment": {
+          "$ref": "#/$defs/facetList"
+        },
+        "environment": {
+          "$ref": "#/$defs/facetList"
+        },
+        "person": {
+          "$ref": "#/$defs/facetList"
+        }
+      }
+    },
+    "topicFacets": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "target": {
+          "$ref": "#/$defs/facetList"
+        },
+        "phase": {
+          "$ref": "#/$defs/facetList"
+        },
+        "modality": {
+          "$ref": "#/$defs/facetList"
+        },
+        "object_size": {
+          "$ref": "#/$defs/facetList"
+        },
+        "equipment": {
+          "$ref": "#/$defs/facetList"
+        },
+        "environment": {
+          "$ref": "#/$defs/facetList"
+        },
+        "person": {
+          "$ref": "#/$defs/facetList"
+        }
+      }
+    },
+    "methodPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "steps",
+        "applicable_when",
+        "expected_outcome",
+        "failure_signals"
+      ],
+      "properties": {
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/nonEmptyString"
+          }
+        },
+        "applicable_when": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "expected_outcome": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "failure_signals": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/nonEmptyString"
+          }
+        }
+      }
+    },
+    "hypothesisPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "test_idea"
+      ],
+      "properties": {
+        "test_idea": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "questionPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "category",
+        "category_raw"
+      ],
+      "properties": {
+        "category": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "technical",
+            "visual",
+            "physical",
+            "psychological",
+            "other",
+            null
+          ]
+        },
+        "category_raw": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Original category label from extraction output when present (e.g. Japanese labels)."
+        }
+      }
+    },
+    "record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "record_id",
+        "record_type",
+        "text",
+        "normalized_text",
+        "actors",
+        "confidence",
+        "needs_verification",
+        "verification_status",
+        "tags",
+        "facets",
+        "method",
+        "hypothesis",
+        "question",
+        "topic_ids",
+        "dedupe_group_id",
+        "is_canonical_in_dedupe_group",
+        "quality_flags",
+        "source_refs"
+      ],
+      "properties": {
+        "record_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "record_type": {
+          "type": "string",
+          "enum": [
+            "observation",
+            "hypothesis",
+            "method",
+            "question"
+          ]
+        },
+        "text": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "normalized_text": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "actors": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/stringArrayUnique"
+            },
+            {
+              "minItems": 1
+            }
+          ]
+        },
+        "confidence": {
+          "$ref": "#/$defs/confidence"
+        },
+        "needs_verification": {
+          "type": "boolean"
+        },
+        "verification_status": {
+          "type": "string",
+          "enum": [
+            "unverified",
+            "supported",
+            "contradicted",
+            "mixed",
+            "not_applicable"
+          ]
+        },
+        "tags": {
+          "$ref": "#/$defs/stringArrayUnique"
+        },
+        "facets": {
+          "$ref": "#/$defs/recordFacets"
+        },
+        "method": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/methodPayload"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "hypothesis": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/hypothesisPayload"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "question": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/questionPayload"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "topic_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/nonEmptyString"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "dedupe_group_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "is_canonical_in_dedupe_group": {
+          "type": "boolean"
+        },
+        "quality_flags": {
+          "$ref": "#/$defs/stringArrayUnique"
+        },
+        "source_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/sourceRef"
+          },
+          "minItems": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "record_type": {
+                "const": "observation"
+              }
+            },
+            "required": [
+              "record_type"
+            ]
+          },
+          "then": {
+            "properties": {
+              "method": {
+                "const": null
+              },
+              "hypothesis": {
+                "const": null
+              },
+              "question": {
+                "const": null
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "record_type": {
+                "const": "method"
+              }
+            },
+            "required": [
+              "record_type"
+            ]
+          },
+          "then": {
+            "properties": {
+              "method": {
+                "$ref": "#/$defs/methodPayload"
+              },
+              "hypothesis": {
+                "const": null
+              },
+              "question": {
+                "const": null
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "record_type": {
+                "const": "hypothesis"
+              }
+            },
+            "required": [
+              "record_type"
+            ]
+          },
+          "then": {
+            "properties": {
+              "method": {
+                "const": null
+              },
+              "hypothesis": {
+                "$ref": "#/$defs/hypothesisPayload"
+              },
+              "question": {
+                "const": null
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "record_type": {
+                "const": "question"
+              }
+            },
+            "required": [
+              "record_type"
+            ]
+          },
+          "then": {
+            "properties": {
+              "method": {
+                "const": null
+              },
+              "hypothesis": {
+                "const": null
+              },
+              "question": {
+                "$ref": "#/$defs/questionPayload"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "conflictSet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "conflict_set_id",
+        "record_ids",
+        "status"
+      ],
+      "properties": {
+        "conflict_set_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "record_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/nonEmptyString"
+          },
+          "minItems": 2,
+          "uniqueItems": true
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "open",
+            "resolved",
+            "mixed"
+          ]
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "resolution_note": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "topicQuality": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence_count",
+        "source_doc_count",
+        "duplicate_group_count"
+      ],
+      "properties": {
+        "evidence_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "source_doc_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "duplicate_group_count": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "topic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "topic_id",
+        "title",
+        "aliases",
+        "summary",
+        "summary_confidence",
+        "tags",
+        "facets",
+        "record_ids",
+        "representative_record_ids",
+        "method_record_ids",
+        "hypothesis_record_ids",
+        "question_record_ids",
+        "conflict_sets",
+        "quality"
+      ],
+      "properties": {
+        "topic_id": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "title": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "aliases": {
+          "$ref": "#/$defs/stringArrayUnique"
+        },
+        "summary": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "summary_confidence": {
+          "$ref": "#/$defs/confidence"
+        },
+        "tags": {
+          "$ref": "#/$defs/stringArrayUnique"
+        },
+        "facets": {
+          "$ref": "#/$defs/topicFacets"
+        },
+        "record_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/nonEmptyString"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "representative_record_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/nonEmptyString"
+          },
+          "uniqueItems": true
+        },
+        "method_record_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/nonEmptyString"
+          },
+          "uniqueItems": true
+        },
+        "hypothesis_record_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/nonEmptyString"
+          },
+          "uniqueItems": true
+        },
+        "question_record_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/nonEmptyString"
+          },
+          "uniqueItems": true
+        },
+        "conflict_sets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/conflictSet"
+          }
+        },
+        "quality": {
+          "$ref": "#/$defs/topicQuality"
+        }
+      }
+    },
+    "stats": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_document_count",
+        "record_count",
+        "topic_count",
+        "dedupe_group_count"
+      ],
+      "properties": {
+        "source_document_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "record_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "topic_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "dedupe_group_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "record_type_counts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "observation",
+            "hypothesis",
+            "method",
+            "question"
+          ],
+          "properties": {
+            "observation": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "hypothesis": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "method": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "question": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    }
+  }
+}

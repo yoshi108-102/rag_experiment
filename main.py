@@ -35,7 +35,7 @@ def main():
             chat_logger.log_message("user", user_input)
                 
             # Step 1: Analyze input using the Gate Model
-            decision, reasoning = analyze_input(user_input, list(llm_context))
+            decision, reasoning, token_usage = analyze_input(user_input, list(llm_context))
             
             # Step 2: Execute the routing logic Based on the decision
             response = execute_route(decision)
@@ -47,10 +47,20 @@ def main():
                     "route": decision.route,
                     "reason": decision.reason,
                     "reasoning": reasoning,
+                    "token_usage": token_usage,
                 },
             )
             
             print(f"AI:   {response}\n")
+            if token_usage:
+                input_tokens = token_usage.get("input_tokens")
+                total_tokens = token_usage.get("total_tokens")
+                print(
+                    "[Token Usage]",
+                    f"input={input_tokens}" if input_tokens is not None else "input=-",
+                    f"total={total_tokens}" if total_tokens is not None else "total=-",
+                )
+                print()
             
             if decision.route == "FINISH":
                 chat_logger.log_event("conversation_finished", route=decision.route, reason=decision.reason)

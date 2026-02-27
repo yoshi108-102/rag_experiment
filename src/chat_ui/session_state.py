@@ -36,11 +36,20 @@ def initialize_session_state(session_state: Any) -> None:
         }
 
 
-def append_user_message(session_state: Any, prompt: str) -> None:
-    session_state.messages.append(
-        {"role": "user", "content": prompt, "debug_info": None}
+def append_user_message(
+    session_state: Any,
+    prompt: str,
+    images: list[dict[str, Any]] | None = None,
+    llm_content: str | None = None,
+) -> None:
+    message: dict[str, Any] = {"role": "user", "content": prompt, "debug_info": None}
+    if images:
+        message["images"] = _sanitize_images_for_state(images)
+
+    session_state.messages.append(message)
+    session_state.llm_context.append(
+        {"role": "user", "content": llm_content if llm_content is not None else prompt}
     )
-    session_state.llm_context.append({"role": "user", "content": prompt})
 
 
 def append_assistant_message(
@@ -56,3 +65,19 @@ def append_assistant_message(
         }
     )
     session_state.llm_context.append({"role": "assistant", "content": content})
+
+
+def _sanitize_images_for_state(images: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    sanitized_images: list[dict[str, Any]] = []
+    for image in images:
+        data = image.get("data")
+        if not isinstance(data, (bytes, bytearray)):
+            continue
+        sanitized_images.append(
+            {
+                "name": str(image.get("name", "image")),
+                "mime_type": str(image.get("mime_type", "")),
+                "data": bytes(data),
+            }
+        )
+    return sanitized_images

@@ -25,8 +25,16 @@ class TurnResult:
     is_finished: bool
 
 
-def handle_user_turn(prompt: str, session_state: Any) -> TurnResult:
-    decision, reasoning = analyze_input(prompt, list(session_state.llm_context))
+def handle_user_turn(
+    prompt: str,
+    session_state: Any,
+    user_images: list[dict[str, str]] | None = None,
+) -> TurnResult:
+    decision, reasoning, token_usage = analyze_input(
+        prompt,
+        list(session_state.llm_context),
+        user_images=user_images,
+    )
     response = execute_route(decision)
     clarify_json = build_clarify_completion_json(prompt, list(session_state.llm_context))
 
@@ -39,6 +47,7 @@ def handle_user_turn(prompt: str, session_state: Any) -> TurnResult:
         "reasoning": reasoning,
         "rag": rag_debug,
         "clarify_json": clarify_json,
+        "token_usage": token_usage,
     }
 
     return TurnResult(

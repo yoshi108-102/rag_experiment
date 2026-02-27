@@ -1,9 +1,11 @@
-import os
 from pathlib import Path
 import re
+from typing import Any
+
 from langchain_openai import ChatOpenAI
 
 from src.core.models import GateDecision
+from src.core.token_usage import default_gate_model_name, extract_token_usage
 from src.agents.translator import translate_reasoning_to_japanese
 
 
@@ -65,6 +67,38 @@ CAUSAL_CONNECTOR_PATTERNS = (
     r"影響で",
     r"都合上",
 )
+
+IMAGE_FALLBACK_TEXT = "添付画像を見て会話を続けたいです。"
+
+
+def _build_human_message_content(
+    text: str,
+    images: list[dict[str, str]] | None = None,
+) -> str | list[dict[str, Any]]:
+    normalized_text = (text or "").strip()
+    if not images:
+        return normalized_text
+
+    content_blocks: list[dict[str, Any]] = [
+        {"type": "text", "text": normalized_text or IMAGE_FALLBACK_TEXT}
+    ]
+    for image in images:
+        mime_type = str(image.get("mime_type", "")).strip().lower()
+        data_base64 = str(image.get("data_base64", "")).strip()
+        if not mime_type.startswith("image/"):
+            continue
+        if not data_base64:
+            continue
+        content_blocks.append(
+            {
+                "type": "image_url",
+                "image_url": {"url": f"data:{mime_type};base64,{data_base64}"},
+            }
+        )
+
+    if len(content_blocks) == 1:
+        return content_blocks[0]["text"]
+    return content_blocks
 
 
 def _matches_any(text: str, patterns: tuple[str, ...]) -> bool:
@@ -269,7 +303,11 @@ def load_gate_prompt() -> str:
     return prompt
 
 
-def analyze_input(user_input: str, chat_context: list = None) -> tuple[GateDecision, str | None]:
+def analyze_input(
+    user_input: str,
+    chat_context: list | None = None,
+    user_images: list[dict[str, str]] | None = None,
+) -> tuple[GateDecision, str | None, dict[str, int] | None]:
     """
     Analyzes the user input and returns a classification decision along with the 
     reasoning content if available. Optionally takes recent chat context (pre-sized).
@@ -281,26 +319,41 @@ def analyze_input(user_input: str, chat_context: list = None) -> tuple[GateDecis
     
     system_prompt = load_gate_prompt()
     
-    messages = [SystemMessage(content=system_prompt)]
-    
-    if chat_context:
-        for msg in chat_context:
-            if msg.get("role") == "user":
-                messages.append(HumanMessage(content=msg["content"]))
-            elif msg.get("role") == "assistant":
-                messages.append(AIMessage(content=msg["content"]))
-
     latest_context_is_same_user_input = bool(
         chat_context
         and chat_context[-1].get("role") == "user"
         and chat_context[-1].get("content") == user_input
     )
+    latest_context_index = (len(chat_context) - 1) if chat_context else -1
+
+    messages = [SystemMessage(content=system_prompt)]
+
+    if chat_context:
+        for idx, msg in enumerate(chat_context):
+            if msg.get("role") == "user":
+                msg_images: list[dict[str, str]] | None = None
+                if idx == latest_context_index and latest_context_is_same_user_input and user_images:
+                    msg_images = user_images
+
+                messages.append(
+                    HumanMessage(
+                        content=_build_human_message_content(
+                            str(msg.get("content", "")),
+                            msg_images,
+                        )
+                    )
+                )
+            elif msg.get("role") == "assistant":
+                messages.append(AIMessage(content=str(msg.get("content", ""))))
+
     if not latest_context_is_same_user_input:
-        messages.append(HumanMessage(content=user_input))
+        messages.append(
+            HumanMessage(content=_build_human_message_content(user_input, user_images))
+        )
     
     # Initialize ChatOpenAI with Reasoning support (Responses API)
     llm = ChatOpenAI(
-        model="gpt-5.2",
+        model=default_gate_model_name(),
         use_responses_api=True,
         output_version="responses/v1",
         reasoning={
@@ -329,6 +382,7 @@ def analyze_input(user_input: str, chat_context: list = None) -> tuple[GateDecis
     
     # Invoke the LLM with direct response_format to enforce Structured Outputs
     response = llm.invoke(messages, response_format=gate_decision_schema)
+    token_usage = extract_token_usage(response)
     
     reasoning = None
     msg_content_json = None
@@ -361,4 +415,4 @@ def analyze_input(user_input: str, chat_context: list = None) -> tuple[GateDecis
     if reasoning:
         reasoning = translate_reasoning_to_japanese(reasoning)
 
-    return decision, reasoning
+    return decision, reasoning, token_usage
