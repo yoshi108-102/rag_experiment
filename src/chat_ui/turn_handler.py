@@ -1,3 +1,5 @@
+"""1ターン分の入力処理を束ね、判定・応答生成・RAGデバッグを構築する。"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -19,6 +21,8 @@ from src.routing.router import execute_route
 
 @dataclass(frozen=True)
 class TurnResult:
+    """1ターン処理の出力をまとめた不変データ。"""
+
     response: str
     reasoning: str | None
     debug_info: dict[str, Any]
@@ -30,6 +34,7 @@ def handle_user_turn(
     session_state: Any,
     user_images: list[dict[str, str]] | None = None,
 ) -> TurnResult:
+    """ユーザー入力1件を処理し、UI描画に必要な結果を返す。"""
     decision, reasoning, token_usage = analyze_input(
         prompt,
         list(session_state.llm_context),
@@ -59,6 +64,7 @@ def handle_user_turn(
 
 
 def _build_rag_debug(session_state: Any, route: str) -> dict[str, Any]:
+    """現在ターンのRAG実行可否を判定し、デバッグ表示用情報を構築する。"""
     rag_debug: dict[str, Any] = {
         "enabled": False,
         "skipped_reason": "not-triggered",

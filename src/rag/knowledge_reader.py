@@ -1,3 +1,5 @@
+"""統合済み知識JSONを読み込み、検索可能なレコード群へ展開する。"""
+
 from __future__ import annotations
 
 import json
@@ -7,6 +9,7 @@ from src.rag.models import KnowledgeRecord
 
 
 def default_consolidated_knowledge_path() -> Path:
+    """統合知識JSONの既定パスを返す。"""
     return (
         Path(__file__).resolve().parent.parent.parent
         / "datasets"
@@ -18,6 +21,7 @@ def default_consolidated_knowledge_path() -> Path:
 def load_consolidated_knowledge_records(
     path: str | Path | None = None,
 ) -> list[KnowledgeRecord]:
+    """統合知識JSONを`KnowledgeRecord`配列に変換して返す。"""
     source_path = Path(path) if path else default_consolidated_knowledge_path()
     if not source_path.exists():
         return []

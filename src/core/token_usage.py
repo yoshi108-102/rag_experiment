@@ -1,3 +1,5 @@
+"""モデル名・コンテキスト上限・token usage整形を扱う共通ユーティリティ。"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -27,16 +29,20 @@ _KNOWN_MODEL_CONTEXT_WINDOWS = {
 
 @dataclass(frozen=True)
 class ContextWindowLimit:
+    """モデルのコンテキスト上限値と、その根拠情報を保持する。"""
+
     model: str
     max_tokens: int
     source: str
 
 
 def default_gate_model_name() -> str:
+    """Gate判定で利用するモデル名を環境変数込みで決定する。"""
     return (os.getenv("GATE_MODEL") or _GATE_MODEL_DEFAULT).strip()
 
 
 def resolve_context_window_limit(model_name: str | None = None) -> ContextWindowLimit:
+    """モデルの想定コンテキスト上限を、環境変数優先で解決する。"""
     override = _parse_positive_int(os.getenv("GATE_CONTEXT_WINDOW_TOKENS"))
     resolved_model = (model_name or default_gate_model_name()).strip()
 
@@ -63,6 +69,7 @@ def resolve_context_window_limit(model_name: str | None = None) -> ContextWindow
 
 
 def context_limit_source_label(source: str) -> str:
+    """上限値のソース識別子を、UI表示向けの日本語ラベルへ変換する。"""
     if source == "env":
         return "環境変数 (GATE_CONTEXT_WINDOW_TOKENS)"
     if source == "model-default":
@@ -71,7 +78,7 @@ def context_limit_source_label(source: str) -> str:
 
 
 def estimate_text_tokens(text: str) -> int:
-    """Estimate token count from text without model-specific tokenizers."""
+    """テキスト長からtoken数を簡易推定する。"""
     normalized = _WHITESPACE_PATTERN.sub(" ", text or "").strip()
     if not normalized:
         return 0
@@ -87,6 +94,7 @@ def estimate_messages_tokens(
     messages: Iterable[Mapping[str, Any]],
     per_message_overhead: int = 4,
 ) -> int:
+    """メッセージ配列全体のtoken数をオーバーヘッド込みで推定する。"""
     total = 0
     for message in messages:
         total += per_message_overhead
@@ -96,6 +104,7 @@ def estimate_messages_tokens(
 
 
 def usage_ratio(used_tokens: int, max_tokens: int) -> float:
+    """使用量を0.0〜1.0の範囲に収めた比率で返す。"""
     if max_tokens <= 0:
         return 0.0
     ratio = used_tokens / max_tokens
@@ -103,13 +112,11 @@ def usage_ratio(used_tokens: int, max_tokens: int) -> float:
 
 
 def extract_token_usage(response: Any) -> dict[str, int] | None:
-    """
-    Extract token usage from LangChain AIMessage-like responses.
+    """LangChainレスポンスからtoken使用量を抽出して正規化する。
 
-    Supports common locations used by OpenAI Responses API wrappers:
-    - response.usage_metadata
-    - response.response_metadata["token_usage"]
-    - response.response_metadata["usage"]
+    OpenAI Responses APIラッパーで一般的な複数格納先
+    (`usage_metadata`, `response_metadata.token_usage`, `response_metadata.usage`)
+    を順に探索する。
     """
     candidates: list[Mapping[str, Any]] = []
 
@@ -135,6 +142,7 @@ def extract_token_usage(response: Any) -> dict[str, int] | None:
 
 
 def _normalize_token_usage(payload: Mapping[str, Any]) -> dict[str, int] | None:
+    """token使用量ペイロードを`input/output/total`形式へ正規化する。"""
     input_tokens = _coerce_int(payload.get("input_tokens"))
     if input_tokens is None:
         input_tokens = _coerce_int(payload.get("prompt_tokens"))
@@ -161,6 +169,7 @@ def _normalize_token_usage(payload: Mapping[str, Any]) -> dict[str, int] | None:
 
 
 def _coerce_int(value: Any) -> int | None:
+    """値を安全に`int`へ変換し、変換不能時は`None`を返す。"""
     if value is None:
         return None
     if isinstance(value, bool):
@@ -175,6 +184,7 @@ def _coerce_int(value: Any) -> int | None:
 
 
 def _parse_positive_int(value: str | None) -> int | None:
+    """正の整数文字列をパースし、無効値なら`None`を返す。"""
     if not value:
         return None
     normalized = value.strip()
@@ -187,6 +197,7 @@ def _parse_positive_int(value: str | None) -> int | None:
 
 
 def _lookup_known_context_window(model_name: str) -> int | None:
+    """既知モデル名またはスナップショット接頭辞から上限値を引く。"""
     if not model_name:
         return None
     exact = _KNOWN_MODEL_CONTEXT_WINDOWS.get(model_name)

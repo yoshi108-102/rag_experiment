@@ -1,3 +1,5 @@
+"""N-gram/Jaccard/部分一致を組み合わせた軽量レコード検索ロジック。"""
+
 from __future__ import annotations
 
 import re
@@ -7,10 +9,12 @@ from src.rag.models import KnowledgeRecord, RetrievalResult
 
 
 def _normalize(text: str) -> str:
+    """空白除去と小文字化を行い、比較向け文字列へ正規化する。"""
     return re.sub(r"\s+", "", text).strip().lower()
 
 
 def _char_ngrams(text: str, n: int = 2) -> set[str]:
+    """文字N-gram集合を返す。短文は単一要素集合で扱う。"""
     normalized = _normalize(text)
     if not normalized:
         return set()
@@ -20,6 +24,7 @@ def _char_ngrams(text: str, n: int = 2) -> set[str]:
 
 
 def _jaccard(a: set[str], b: set[str]) -> float:
+    """2集合のJaccard係数を返す。"""
     if not a or not b:
         return 0.0
     union = a | b
@@ -29,6 +34,7 @@ def _jaccard(a: set[str], b: set[str]) -> float:
 
 
 def _tag_fragments(tags: list[str]) -> list[str]:
+    """`カテゴリ:値`形式タグを、部分一致判定しやすい断片へ展開する。"""
     fragments: list[str] = []
     for tag in tags:
         tag = tag.strip()
@@ -44,6 +50,7 @@ def _tag_fragments(tags: list[str]) -> list[str]:
 
 
 def score_record_match(query: str, record: KnowledgeRecord) -> tuple[float, list[str]]:
+    """クエリと1レコードの類似度スコアと根拠ラベルを計算する。"""
     q = _normalize(query)
     if not q:
         return 0.0, []
@@ -98,6 +105,7 @@ def search_similar_records(
     top_k: int = 3,
     min_score: float = 0.18,
 ) -> list[RetrievalResult]:
+    """候補レコードを採点し、スコア上位`top_k`件を返す。"""
     results: list[RetrievalResult] = []
     for record in records:
         score, reasons = score_record_match(query, record)

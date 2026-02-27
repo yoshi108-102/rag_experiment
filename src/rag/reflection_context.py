@@ -1,3 +1,5 @@
+"""RAG全体フロー（検索・新規性判定・pending保存）を実行する統合処理。"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -15,6 +17,8 @@ from src.rag.record_search import search_similar_records
 
 @dataclass(frozen=True)
 class ReflectionContextAnalysis:
+    """1回のRAG解析結果をUI/ログへ渡すためのデータ構造。"""
+
     enabled: bool
     retrieved: list[RetrievalResult]
     novelty: NoveltyDecision | None
@@ -24,6 +28,7 @@ class ReflectionContextAnalysis:
     retrieval_note: str | None = None
 
     def to_dict(self) -> dict:
+        """入れ子オブジェクトを含む解析結果を辞書へ変換する。"""
         return {
             "enabled": self.enabled,
             "retrieved": [item.to_dict() for item in self.retrieved],
@@ -42,6 +47,7 @@ def analyze_reflection_context(
     allowed_routes: tuple[str, ...] = ("DEEPEN", "CLARIFY"),
     top_k: int = 3,
 ) -> ReflectionContextAnalysis:
+    """入力テキストに近い過去知識を検索し、新規性を判定する。"""
     if route not in allowed_routes:
         return ReflectionContextAnalysis(
             enabled=False,
