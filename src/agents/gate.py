@@ -46,6 +46,15 @@ SHORT_AFFIRMATION_PATTERNS = (
     r"はい[。！]?$",
 )
 
+LOW_SIGNAL_ENDING_PATTERNS = (
+    r"^(特に)?ないです$",
+    r"^(特に)?ありません$",
+    r"^ないかな$",
+    r"^大丈夫です$",
+    r"^以上です$",
+    r"^それだけです$",
+)
+
 QUESTION_MARKER_PATTERNS = (
     r"[？?]$",
     r"疑問",
@@ -290,6 +299,8 @@ def _is_meaningful_user_text(text: str) -> bool:
         return False
     if _matches_any(compact, SHORT_AFFIRMATION_PATTERNS):
         return False
+    if _matches_any(compact, LOW_SIGNAL_ENDING_PATTERNS):
+        return False
     return True
 
 
@@ -301,6 +312,29 @@ def _infer_idea_or_question_kind(text: str) -> str | None:
     if _matches_any(compact, QUESTION_MARKER_PATTERNS):
         return "question"
     return "idea"
+
+
+def _text_information_score(text: str) -> int:
+    """発話の情報量をざっくり採点する（高いほどitem候補として優先）。"""
+    compact = _normalize_text_for_slots(text)
+    if not compact:
+        return -1
+
+    score = len(compact)
+    extracted_reason, extracted_item = _extract_causal_pair(compact)
+    if extracted_reason and extracted_item:
+        score += 50
+    if _matches_any(compact, QUESTION_MARKER_PATTERNS):
+        score += 10
+    return score
+
+
+def _select_best_text(candidates: list[tuple[int, str]]) -> str | None:
+    """候補文から情報量と新しさを基準に最良の文を選ぶ。"""
+    if not candidates:
+        return None
+    _, selected = max(candidates, key=lambda item: (_text_information_score(item[1]), item[0]))
+    return selected
 
 
 def build_clarify_completion_json(
@@ -319,26 +353,35 @@ def build_clarify_completion_json(
     if not user_texts or user_texts[-1] != user_input:
         user_texts.append(user_input)
 
-    kind: str | None = None
-    item: str | None = None
-    reason: str | None = None
+    meaningful_texts: list[tuple[int, str]] = []
+    causal_pairs: list[tuple[int, str, str, str]] = []
 
-    for text in reversed(user_texts):
+    for idx, text in enumerate(user_texts):
         if not _is_meaningful_user_text(text):
             continue
 
         compact = _normalize_text_for_slots(text)
-        if kind is None:
-            kind = _infer_idea_or_question_kind(compact)
+        meaningful_texts.append((idx, compact))
 
         extracted_reason, extracted_item = _extract_causal_pair(compact)
-        if reason is None and extracted_reason:
-            reason = extracted_reason
-        if item is None and extracted_item:
-            item = extracted_item
+        if extracted_reason and extracted_item:
+            causal_pairs.append((idx, extracted_reason, extracted_item, compact))
 
-        if item is None:
-            item = compact
+    kind: str | None = None
+    item: str | None = None
+    reason: str | None = None
+
+    if causal_pairs:
+        _, reason, item, pair_source_text = max(causal_pairs, key=lambda item: item[0])
+        kind = _infer_idea_or_question_kind(pair_source_text)
+
+    if kind is None:
+        best_text = _select_best_text(meaningful_texts)
+        if best_text is not None:
+            kind = _infer_idea_or_question_kind(best_text)
+
+    if item is None:
+        item = _select_best_text(meaningful_texts)
 
     return {
         "kind": kind,
