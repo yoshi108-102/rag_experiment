@@ -278,3 +278,22 @@ def test_build_clarify_completion_json_collects_reason_from_recent_context():
     assert payload["is_complete"] is True
     assert payload["reason"] is not None
     assert payload["item"] is not None
+
+
+def test_build_clarify_completion_json_ignores_low_signal_latest_reply():
+    payload = build_clarify_completion_json(
+        "ないです",
+        chat_context=[
+            {"role": "assistant", "content": "それで、どうしてその持ち方にしたの？"},
+            {
+                "role": "user",
+                "content": "棒を目にある程度近づけて回す必要があるから、手で棒を持ち上げている",
+            },
+            {"role": "assistant", "content": "ほかにある？"},
+        ],
+    )
+
+    assert payload["is_complete"] is True
+    assert payload["kind"] == "idea"
+    assert payload["item"] == "手で棒を持ち上げている"
+    assert payload["reason"] == "棒を目にある程度近づけて回す必要がある"
