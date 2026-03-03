@@ -30,13 +30,20 @@ User Input
 ### 主な責務
 
 - `src/agents/gate.py`
+  - Gate判定ユースケースの後方互換ファサード
+- `src/chains/gate_classifier.py`
   - Gate判定（`GateDecision` のStructured Output）
-  - Reasoning要約の取得と日本語翻訳
-  - ルールベースの上書き（明確な終了意図、苛立ち検知、CLARIFY完了判定）
+  - Reasoning要約の取得と日本語翻訳呼び出し
+- `src/middleware/prompt_middleware.py`
+  - system prompt合成、メッセージ整形（画像含む）
+- `src/middleware/decision_guard.py`
+  - ルールベース上書き（終了意図、苛立ち検知、CLARIFY完了判定）
 - `src/routing/router.py`
   - `route` に応じた返答の返却（現状は `first_question` を返す薄い層）
 - `src/chat_ui/turn_handler.py`
   - 1ターンの処理ユースケース（Gate -> Router -> RAG debug構築）
+- `src/tools/rag_tools.py`
+  - RAG機能のLangChain toolラッパ
 - `src/chat_ui/rag_policy.py`
   - RAGのトリガ判定（境界ターン / ストリーク / クールダウン / 重複クエリ回避）
 - `src/rag/*`
@@ -85,10 +92,13 @@ User Input
 ├── logs/                     # チャットセッションログ
 ├── src/
 │   ├── agents/               # Gate判定、Reasoning翻訳
+│   ├── chains/               # LLMチェーン定義
 │   ├── chat_ui/              # Streamlit向けUI/状態/ユースケース
 │   ├── core/                 # 共通モデル、ロギング
+│   ├── middleware/           # Prompt前処理/判定後ガードレール
 │   ├── rag/                  # 検索・新規性判定・保存
-│   └── routing/              # route -> 応答
+│   ├── routing/              # route -> 応答
+│   └── tools/                # LangChain tools
 └── tests/                    # 単体テスト
 ```
 

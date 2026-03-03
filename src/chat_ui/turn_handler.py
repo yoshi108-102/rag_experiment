@@ -15,8 +15,8 @@ from src.chat_ui.rag_policy import (
     should_skip_same_query,
     update_idea_buffer,
 )
-from src.rag import analyze_reflection_context
 from src.routing.router import execute_route
+from src.tools.rag_tools import run_reflection_context_lookup
 
 
 @dataclass(frozen=True)
@@ -87,7 +87,7 @@ def _build_rag_debug(session_state: Any, route: str) -> dict[str, Any]:
         clear_idea_buffer_if_boundary(session_state, route)
         return rag_debug
 
-    context_analysis = analyze_reflection_context(
+    context_analysis = run_reflection_context_lookup(
         rag_query,
         route,
         allowed_routes=RAG_ELIGIBLE_ROUTES,

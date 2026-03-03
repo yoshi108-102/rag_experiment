@@ -1,0 +1,110 @@
+"""Gate判定前のプロンプト構築責務をまとめる middleware。"""
+
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Any
+
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+
+
+IMAGE_FALLBACK_TEXT = "添付画像を見て会話を続けたいです。"
+
+
+def load_gate_prompt() -> str:
+    """Gate判定に使用するsystem prompt本文を読み込む。"""
+    base_dir = Path(__file__).resolve().parent.parent.parent
+    prompt_path = base_dir / "prompts" / "gate_prompt.md"
+    overall_path = base_dir / "prompts" / "overall.md"
+
+    with open(prompt_path, "r", encoding="utf-8") as f:
+        prompt = f.read()
+
+    if overall_path.exists():
+        with open(overall_path, "r", encoding="utf-8") as f:
+            overall_context = f.read()
+        prompt += (
+            "\n\n[ドメイン知識（前提）]\n"
+            "以下の作業概要を前提知識として踏まえた上で、"
+            "ユーザーの発言を解釈してください。\n"
+            f"{overall_context}"
+        )
+
+    return prompt
+
+
+def build_human_message_content(
+    text: str,
+    images: list[dict[str, str]] | None = None,
+) -> str | list[dict[str, Any]]:
+    """テキストと画像群をResponses API向けのHumanMessage形式へ整形する。"""
+    normalized_text = (text or "").strip()
+    if not images:
+        return normalized_text
+
+    content_blocks: list[dict[str, Any]] = [
+        {"type": "text", "text": normalized_text or IMAGE_FALLBACK_TEXT}
+    ]
+    for image in images:
+        mime_type = str(image.get("mime_type", "")).strip().lower()
+        data_base64 = str(image.get("data_base64", "")).strip()
+        if not mime_type.startswith("image/"):
+            continue
+        if not data_base64:
+            continue
+        content_blocks.append(
+            {
+                "type": "image_url",
+                "image_url": {"url": f"data:{mime_type};base64,{data_base64}"},
+            }
+        )
+
+    if len(content_blocks) == 1:
+        return content_blocks[0]["text"]
+    return content_blocks
+
+
+def build_chat_messages(
+    system_prompt: str,
+    user_input: str,
+    chat_context: list | None = None,
+    user_images: list[dict[str, str]] | None = None,
+) -> list[SystemMessage | HumanMessage | AIMessage]:
+    """system/context/current入力からLLM送信用メッセージ列を構築する。"""
+    latest_context_is_same_user_input = bool(
+        chat_context
+        and chat_context[-1].get("role") == "user"
+        and chat_context[-1].get("content") == user_input
+    )
+    latest_context_index = (len(chat_context) - 1) if chat_context else -1
+
+    messages: list[SystemMessage | HumanMessage | AIMessage] = [
+        SystemMessage(content=system_prompt)
+    ]
+    if chat_context:
+        for idx, msg in enumerate(chat_context):
+            if msg.get("role") == "user":
+                msg_images: list[dict[str, str]] | None = None
+                if (
+                    idx == latest_context_index
+                    and latest_context_is_same_user_input
+                    and user_images
+                ):
+                    msg_images = user_images
+
+                messages.append(
+                    HumanMessage(
+                        content=build_human_message_content(
+                            str(msg.get("content", "")),
+                            msg_images,
+                        )
+                    )
+                )
+            elif msg.get("role") == "assistant":
+                messages.append(AIMessage(content=str(msg.get("content", ""))))
+
+    if not latest_context_is_same_user_input:
+        messages.append(
+            HumanMessage(content=build_human_message_content(user_input, user_images))
+        )
+    return messages
