@@ -1,11 +1,13 @@
-"""Gate判定前のプロンプト構築責務をまとめる middleware。"""
+"""Gate判定用のプロンプト構築とLangChain middleware定義。"""
 
 from __future__ import annotations
 
 from pathlib import Path
 from typing import Any
 
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+from langchain.agents.middleware import dynamic_prompt
+from langchain.agents.middleware.types import ModelRequest
+from langchain_core.messages import AIMessage, HumanMessage
 
 
 IMAGE_FALLBACK_TEXT = "添付画像を見て会話を続けたいです。"
@@ -31,6 +33,13 @@ def load_gate_prompt() -> str:
         )
 
     return prompt
+
+
+@dynamic_prompt
+def gate_system_prompt_middleware(request: ModelRequest) -> str:
+    """LangChain middlewareとしてsystem promptを動的注入する。"""
+    del request
+    return load_gate_prompt()
 
 
 def build_human_message_content(
@@ -65,11 +74,10 @@ def build_human_message_content(
 
 
 def build_chat_messages(
-    system_prompt: str,
     user_input: str,
     chat_context: list | None = None,
     user_images: list[dict[str, str]] | None = None,
-) -> list[SystemMessage | HumanMessage | AIMessage]:
+) -> list[HumanMessage | AIMessage]:
     """system/context/current入力からLLM送信用メッセージ列を構築する。"""
     latest_context_is_same_user_input = bool(
         chat_context
@@ -78,9 +86,7 @@ def build_chat_messages(
     )
     latest_context_index = (len(chat_context) - 1) if chat_context else -1
 
-    messages: list[SystemMessage | HumanMessage | AIMessage] = [
-        SystemMessage(content=system_prompt)
-    ]
+    messages: list[HumanMessage | AIMessage] = []
     if chat_context:
         for idx, msg in enumerate(chat_context):
             if msg.get("role") == "user":

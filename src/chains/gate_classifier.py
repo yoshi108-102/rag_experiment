@@ -5,12 +5,16 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Callable
 
+from langchain.agents import create_agent
+from langchain.agents.middleware import wrap_model_call
+from langchain.agents.middleware.types import ModelRequest
+from langchain_core.messages import AIMessage
 from langchain_openai import ChatOpenAI
 
 from src.core.models import GateDecision
 from src.core.token_usage import default_gate_model_name, extract_token_usage
 from src.middleware.decision_guard import apply_decision_overrides
-from src.middleware.prompt_middleware import build_chat_messages, load_gate_prompt
+from src.middleware.prompt_middleware import build_chat_messages, gate_system_prompt_middleware
 
 
 PARK_PARSE_ERROR_MESSAGE = "解析エラーが発生しました。"
@@ -82,6 +86,36 @@ def parse_decision_with_override(
     return park_decision("No response content", PARK_NO_CONTENT_MESSAGE)
 
 
+def build_gate_invoke_middleware(response_format: dict[str, Any]):
+    """Gate判定向けのモデル実行 middleware を生成する。"""
+
+    @wrap_model_call(name="GateInvokeMiddleware")
+    def gate_invoke(request: ModelRequest, handler):  # type: ignore[no-untyped-def]
+        del handler
+        messages = list(request.messages)
+        if request.system_message is not None:
+            messages = [request.system_message, *messages]
+        response = request.model.invoke(messages, response_format=response_format)
+
+        # langgraph reducer expects message.id; some mocked AIMessage objects may miss it.
+        try:
+            _ = response.id
+        except Exception:
+            setattr(response, "id", "gate-response")
+
+        return response
+
+    return gate_invoke
+
+
+def extract_last_ai_message(messages: list[Any]) -> AIMessage:
+    """agent実行結果から最後のAIMessageを取り出す。"""
+    for message in reversed(messages):
+        if isinstance(message, AIMessage):
+            return message
+    raise ValueError("No AIMessage found in agent output")
+
+
 @dataclass(frozen=True)
 class GateClassifierChain:
     """Gate判定を1つの責務にまとめたチェーン。"""
@@ -96,8 +130,7 @@ class GateClassifierChain:
         user_images: list[dict[str, str]] | None = None,
     ) -> tuple[GateDecision, str | None, dict[str, int] | None]:
         """ユーザー入力を解析し、`GateDecision`と補助情報を返す。"""
-        system_prompt = load_gate_prompt()
-        messages = build_chat_messages(system_prompt, user_input, chat_context, user_images)
+        messages = build_chat_messages(user_input, chat_context, user_images)
 
         llm = self.llm_factory(
             model=default_gate_model_name(),
@@ -109,7 +142,18 @@ class GateClassifierChain:
             },
         )
         gate_decision_schema = build_gate_decision_schema()
-        response = llm.invoke(messages, response_format=gate_decision_schema)
+        agent = create_agent(
+            model=llm,
+            tools=[],
+            middleware=[
+                gate_system_prompt_middleware,
+                build_gate_invoke_middleware(gate_decision_schema),
+            ],
+        )
+        agent_output = agent.invoke({"messages": messages})
+        response = extract_last_ai_message(
+            list(agent_output.get("messages", [])),
+        )
 
         token_usage = extract_token_usage(response)
         reasoning, msg_content_json = extract_reasoning_and_decision_json(response.content)
@@ -119,4 +163,3 @@ class GateClassifierChain:
             reasoning = self.reasoning_translator(reasoning)
 
         return decision, reasoning, token_usage
-

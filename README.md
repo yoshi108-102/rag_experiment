@@ -34,8 +34,10 @@ User Input
 - `src/chains/gate_classifier.py`
   - Gate判定（`GateDecision` のStructured Output）
   - Reasoning要約の取得と日本語翻訳呼び出し
+  - `create_agent` の組み込みmiddlewareパイプラインで分類実行
 - `src/middleware/prompt_middleware.py`
   - system prompt合成、メッセージ整形（画像含む）
+  - `langchain.agents.middleware.dynamic_prompt` を使った prompt 注入
 - `src/middleware/decision_guard.py`
   - ルールベース上書き（終了意図、苛立ち検知、CLARIFY完了判定）
 - `src/routing/router.py`
