@@ -66,6 +66,53 @@ QUESTION_MARKER_PATTERNS = (
     r"何を",
 )
 
+LOW_DETAIL_ABSTRACT_PATTERNS = (
+    r"わかりづら",
+    r"分かりづら",
+    r"見えづら",
+    r"見づら",
+    r"難し",
+    r"困っ",
+    r"迷っ",
+    r"きつ",
+    r"しんど",
+    r"疲れ",
+)
+
+DETAIL_REPORT_PATTERNS = (
+    r"\d",
+    r"(mm|cm|kg|度|秒|分|回)",
+    r"どのタイミング",
+    r"いつ",
+    r"どこ",
+)
+
+VISIBILITY_PATTERNS = (
+    r"見えづら",
+    r"見づら",
+    r"見にく",
+    r"わかりづら",
+    r"分かりづら",
+)
+
+FATIGUE_PATTERNS = (
+    r"きつ",
+    r"しんど",
+    r"疲れ",
+    r"重",
+)
+
+CONFUSION_PATTERNS = (
+    r"迷っ",
+    r"困っ",
+    r"わから",
+)
+
+OVER_SPECIFIC_QUESTION_PATTERNS = (
+    r"どのタイミング",
+    r"何(mm|cm|kg|度|秒|分|回)",
+)
+
 CAUSAL_CONNECTOR_PATTERNS = (
     r"から",
     r"ので",
@@ -184,6 +231,97 @@ def select_best_text(candidates: list[tuple[int, str]]) -> str | None:
     return selected
 
 
+def count_prior_user_turns(chat_context: list | None) -> int:
+    """今回入力以前のユーザー発話数を返す。"""
+    if not chat_context:
+        return 0
+
+    return sum(
+        1
+        for msg in chat_context
+        if msg.get("role") == "user"
+        and normalize_text_for_slots(str(msg.get("content", "")))
+    )
+
+
+def is_low_detail_abstract_report(text: str) -> bool:
+    """抽象的で詳細が少ない報告かを判定する。"""
+    compact = normalize_text_for_slots(text)
+    if len(compact) < 5:
+        return False
+    if infer_idea_or_question_kind(compact) == "question":
+        return False
+    if not matches_any(compact, LOW_DETAIL_ABSTRACT_PATTERNS):
+        return False
+    if matches_any(compact, DETAIL_REPORT_PATTERNS):
+        return False
+    return True
+
+
+def extract_binary_options(question: str) -> tuple[str, str] | None:
+    """`AとBどっち` 形式から二択の候補を抽出する。"""
+    match = re.search(
+        r"(?P<a>[^、。！？?]{2,20})と(?P<b>[^、。！？?]{2,20})(どっち|どちら)",
+        question,
+    )
+    if not match:
+        return None
+    return (
+        normalize_text_for_slots(match.group("a")),
+        normalize_text_for_slots(match.group("b")),
+    )
+
+
+def introduces_unseen_binary_options(question: str, user_input: str) -> bool:
+    """質問内の二択候補がユーザー未提示かを判定する。"""
+    options = extract_binary_options(question)
+    if options is None:
+        return False
+
+    user_text = normalize_text_for_slots(user_input)
+    return all(option and option not in user_text for option in options)
+
+
+def looks_over_specific_follow_up(question: str, user_input: str) -> bool:
+    """ユーザー入力に対して質問が絞り込み過剰かを判定する。"""
+    compact_question = normalize_text_for_slots(question)
+    if not compact_question:
+        return False
+
+    if introduces_unseen_binary_options(compact_question, user_input):
+        return True
+
+    return matches_any(compact_question, OVER_SPECIFIC_QUESTION_PATTERNS)
+
+
+def build_broad_gather_question(user_input: str) -> str:
+    """抽象入力に対して使う、広めの情報収集質問を返す。"""
+    compact = normalize_text_for_slots(user_input)
+
+    if matches_any(compact, VISIBILITY_PATTERNS):
+        return "どんな感じで見づらかったのか、もう少し聞かせて。"
+    if matches_any(compact, FATIGUE_PATTERNS):
+        return "どんなやり方のときに一番きつかった？"
+    if matches_any(compact, CONFUSION_PATTERNS):
+        return "どこから迷い始めた感じだった？"
+    return "どんな感じで困ったのか、もう少し聞かせて。"
+
+
+def should_force_broad_gather(
+    decision: GateDecision,
+    user_input: str,
+    chat_context: list | None = None,
+) -> bool:
+    """初期ターンでは絞り込みより広い聞き方を優先すべきかを判定する。"""
+    if decision.route not in {"DEEPEN", "CLARIFY"}:
+        return False
+    if not is_low_detail_abstract_report(user_input):
+        return False
+    if count_prior_user_turns(chat_context) >= 2:
+        return False
+    return looks_over_specific_follow_up(decision.first_question, user_input)
+
+
 def build_clarify_completion_json(
     user_input: str,
     chat_context: list | None = None,
@@ -280,5 +418,11 @@ def apply_decision_overrides(
             first_question="うん、意図は十分伝わったので、ここで区切って大丈夫そうです。",
         )
 
-    return decision
+    if should_force_broad_gather(decision, text, chat_context):
+        return GateDecision(
+            route=decision.route,
+            reason="Broad gather before narrowing",
+            first_question=build_broad_gather_question(text),
+        )
 
+    return decision

@@ -131,7 +131,6 @@ class GateClassifierChain:
     ) -> tuple[GateDecision, str | None, dict[str, int] | None]:
         """ユーザー入力を解析し、`GateDecision`と補助情報を返す。"""
         messages = build_chat_messages(user_input, chat_context, user_images)
-
         llm = self.llm_factory(
             model=default_gate_model_name(),
             use_responses_api=True,

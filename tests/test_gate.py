@@ -196,6 +196,45 @@ def test_apply_decision_overrides_keeps_non_closure_input():
     assert overridden == decision
 
 
+def test_apply_decision_overrides_switches_over_specific_binary_question_to_broad():
+    decision = GateDecision(
+        route="CLARIFY",
+        reason="Need detail",
+        first_question="そっか、馬台で転がす時と椅子で見る時どっちが見えづらかった？",
+    )
+
+    overridden = _apply_decision_overrides(
+        decision,
+        "曲がってるかわかりづらかった",
+        chat_context=[
+            {"role": "assistant", "content": "今日はどうだった？"},
+            {"role": "user", "content": "特に見え方が気になった"},
+        ],
+    )
+
+    assert overridden.route == "CLARIFY"
+    assert overridden.reason == "Broad gather before narrowing"
+    assert overridden.first_question == "どんな感じで見づらかったのか、もう少し聞かせて。"
+
+
+def test_apply_decision_overrides_keeps_binary_question_when_user_already_mentioned_options():
+    decision = GateDecision(
+        route="CLARIFY",
+        reason="Need detail",
+        first_question="馬台で転がす時と椅子で見る時どっちが見えづらかった？",
+    )
+
+    overridden = _apply_decision_overrides(
+        decision,
+        "馬台で転がす時と椅子で見る時のどっちも見づらかった",
+        chat_context=[
+            {"role": "assistant", "content": "どんな感じで見づらい？"},
+        ],
+    )
+
+    assert overridden == decision
+
+
 def test_apply_decision_overrides_turns_frustration_into_park():
     decision = GateDecision(
         route="CLARIFY",
