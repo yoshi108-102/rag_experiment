@@ -70,6 +70,7 @@ User Input
    - ルーティング情報（デバッグ）
    - コンテキスト使用量（推定）と最新の実測 token usage（サイドバー）
 6. 会話ログを `logs/chat_sessions/*.jsonl` に保存
+7. Gate分類の生トレースを `logs/gate_agent_traces/*.jsonl` に保存（有効時）
 
 ## RAG（現在の実装）
 
@@ -128,6 +129,7 @@ cp .env.example .env
 - `RAG_EMBEDDING_MODEL`（任意。未指定時は `text-embedding-3-small`）
 - `GATE_MODEL`（任意。未指定時は `gpt-5.2`）
 - `GATE_CONTEXT_WINDOW_TOKENS`（任意。コンテキスト上限を明示したい場合に指定）
+- `GATE_TRACE_LOG_ENABLED`（任意。`0/false/off/no`でGate生トレース保存を無効化）
 
 ## 実行方法
 
@@ -158,3 +160,4 @@ uv run pytest tests
 - `FINISH` / `PARK` は会話の区切り（boundary route）として RAGバッファ制御に使われる
 - Streamlit UIでは RAG / Routing / Reasoning のデバッグ表示が有効
 - Streamlit サイドバーにコンテキストウインドウ使用量（推定 + 最新API実測token usage）を表示
+- Gate分類の深い実行ログ（request/response含む）は `logs/gate_agent_traces/*.jsonl` に保存
