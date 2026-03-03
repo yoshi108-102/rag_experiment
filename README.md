@@ -170,6 +170,44 @@ uv run python scripts/analyze_jsonl_logs.py
 uv run python scripts/analyze_jsonl_logs.py --out logs/analysis/summary.json
 ```
 
+## Evalデータセット作成（ログ由来）
+
+`logs/chat_sessions/*.jsonl` から、評価用の1ターンケース（`user -> assistant`）を抽出して
+`evals/cases/*.jsonl` を作成できます。出力ケースには `expected_route: null` が入るため、
+その後に人手でラベル付けしてください。
+
+```bash
+uv run python scripts/build_eval_dataset_from_logs.py
+```
+
+主なオプション:
+
+```bash
+uv run python scripts/build_eval_dataset_from_logs.py \
+  --max-cases 100 \
+  --dedupe-mode user_and_route \
+  --route-quota "CLARIFY=50,DEEPEN=20,FINISH=20,PARK=10" \
+  --out evals/cases/route_eval_candidates_v1.jsonl
+```
+
+## EvalボードUI（Streamlit）
+
+編集ワークベンチを使うと、履歴ログをボード形式で読み込み、ケースをUI上で編集できます。
+
+- カード右上の `編集済み` チェックボックスで管理
+- `データセット種別` をカードごとに設定
+- `User Input` / `Assistant Output` / `Context` を直接編集
+- 新規ケースを自作して追加
+- 編集済みケースだけをJSONL出力
+
+起動方法（既存の `app.py` と同じマルチページアプリとして表示されます）:
+
+```bash
+uv run streamlit run app.py
+```
+
+サイドバーから `Eval Dataset Board` ページを選択してください。
+
 ## 補足（現状の仕様メモ）
 
 - Gate判定は OpenAI Responses API + Structured Outputs を利用
