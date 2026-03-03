@@ -53,7 +53,7 @@ User Input (text / image)
 
 `turn_handler._build_rag_debug()` で以下の順に判定します。
 
-1. `should_run_rag()`（boundary/cooldown/streak）
+1. `should_run_rag()`（boundary-skip/cooldown/streak）
 2. `build_buffered_idea_query()` で検索クエリ作成
 3. `should_skip_same_query()` で重複・短文除外
 4. `run_reflection_context_lookup()` 実行
@@ -72,7 +72,7 @@ RAG本体 (`analyze_reflection_context`) は以下を担当します。
 
 - `messages`: 画面表示用履歴
 - `llm_context`: Gate入力用履歴
-- `idea_buffer`: RAGトリガ判定向けバッファ
+- `idea_buffer`: RAGトリガ判定向けバッファ（`PARK`/`FINISH` でクリア）
 - `rag_meta`: ターン数、前回RAG実行情報
 
 ## CLIフロー

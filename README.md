@@ -130,6 +130,9 @@ cp .env.example .env
 - `GATE_MODEL`（任意。未指定時は `gpt-5.2`）
 - `GATE_CONTEXT_WINDOW_TOKENS`（任意。コンテキスト上限を明示したい場合に指定）
 - `GATE_TRACE_LOG_ENABLED`（任意。`0/false/off/no`でGate生トレース保存を無効化）
+- `REASONING_TRANSLATION_ENABLED`（任意。`1/true/on/yes` のときのみReasoning翻訳LLMを実行）
+- `REASONING_TRANSLATION_MODEL`（任意。翻訳に使うモデル名。既定 `gpt-4o-mini`）
+- `OVERALL_CONTEXT_MODE`（任意。`auto`/`always`/`off`。既定 `auto`）
 
 ## 実行方法
 
@@ -153,11 +156,25 @@ uv run python main.py
 uv run pytest tests
 ```
 
+## ログ分析（JSONL）
+
+会話ログとGateトレースを集計するスクリプトを追加しています。
+
+```bash
+uv run python scripts/analyze_jsonl_logs.py
+```
+
+保存したい場合:
+
+```bash
+uv run python scripts/analyze_jsonl_logs.py --out logs/analysis/summary.json
+```
+
 ## 補足（現状の仕様メモ）
 
 - Gate判定は OpenAI Responses API + Structured Outputs を利用
-- `prompts/gate_prompt.md` を読み込み、`prompts/overall.md` が存在すれば前提知識として追記
-- `FINISH` / `PARK` は会話の区切り（boundary route）として RAGバッファ制御に使われる
+- `prompts/gate_prompt.md` を読み込み、`prompts/overall.md` は `OVERALL_CONTEXT_MODE` に応じて注入
+- `FINISH` / `PARK` は会話の区切りとして RAGバッファをクリア（RAG検索は実行しない）
 - Streamlit UIでは RAG / Routing / Reasoning のデバッグ表示が有効
 - Streamlit サイドバーにコンテキストウインドウ使用量（推定 + 最新API実測token usage）を表示
 - Gate分類の深い実行ログ（request/response含む）は `logs/gate_agent_traces/*.jsonl` に保存
