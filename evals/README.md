@@ -37,7 +37,8 @@ uv run python scripts/build_eval_dataset_from_logs.py \
 `uv run streamlit run app.py` を起動し、サイドバーから `Eval Dataset Board` を選択すると、
 ボード形式で編集できます。
 
+- カードに最初の疑問を表示し、クリックで会話編集画面へ遷移
 - カード右上の `編集済み` チェックで進捗管理
 - `データセット種別` をカード単位で変更
-- 会話内容を直接編集
+- 会話編集画面（chat_message表示）で発話を直接編集
 - 新規ケースを自作して追加

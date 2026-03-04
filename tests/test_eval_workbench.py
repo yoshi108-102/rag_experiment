@@ -4,11 +4,15 @@ import json
 from pathlib import Path
 
 from src.evals.workbench import (
+    apply_conversation_to_case,
     build_custom_case,
+    case_to_conversation,
     ensure_case_defaults,
     export_cases_to_jsonl,
+    initial_user_question,
     load_workbench_state,
     merge_base_cases_with_state,
+    normalize_conversation,
     parse_context_lines,
     render_context_lines,
     save_workbench_state,
@@ -130,3 +134,88 @@ def test_export_cases_to_jsonl_filters_edited(tmp_path):
     assert exported_count == 1
     assert len(rows) == 1
     assert rows[0]["case_id"] == "c1"
+
+
+def test_case_to_conversation_builds_from_blocks():
+    case = ensure_case_defaults(
+        {
+            "case_id": "c-conv",
+            "source": {"is_custom": False},
+            "input": {
+                "context": [{"role": "assistant", "content": "最初の確認"}],
+                "user_input": "ユーザーの疑問",
+            },
+            "output": {"assistant_output": "回答", "predicted_route": "CLARIFY"},
+            "metadata": {},
+            "labels": {},
+        }
+    )
+
+    conversation = case_to_conversation(case)
+
+    assert conversation == [
+        {"role": "assistant", "content": "最初の確認"},
+        {"role": "user", "content": "ユーザーの疑問"},
+        {"role": "assistant", "content": "回答"},
+    ]
+
+
+def test_apply_conversation_to_case_updates_input_output():
+    case = ensure_case_defaults(
+        {
+            "case_id": "c-apply",
+            "source": {"is_custom": False},
+            "input": {"context": [], "user_input": "old user"},
+            "output": {"assistant_output": "old assistant", "predicted_route": "DEEPEN"},
+            "metadata": {},
+            "labels": {},
+        }
+    )
+    conversation = [
+        {"role": "assistant", "content": "前置き"},
+        {"role": "user", "content": "新しい疑問"},
+        {"role": "assistant", "content": "新しい返答"},
+    ]
+
+    updated = apply_conversation_to_case(case, conversation)
+
+    assert updated["input"]["context"] == [{"role": "assistant", "content": "前置き"}]
+    assert updated["input"]["user_input"] == "新しい疑問"
+    assert updated["output"]["assistant_output"] == "新しい返答"
+    assert updated["metadata"]["conversation"] == conversation
+
+
+def test_initial_user_question_takes_first_user_message():
+    case = ensure_case_defaults(
+        {
+            "case_id": "c-question",
+            "source": {"is_custom": False},
+            "input": {
+                "context": [
+                    {"role": "assistant", "content": "冒頭"},
+                    {"role": "user", "content": "最初の疑問"},
+                ],
+                "user_input": "後段の疑問",
+            },
+            "output": {"assistant_output": "回答", "predicted_route": "CLARIFY"},
+            "metadata": {},
+            "labels": {},
+        }
+    )
+
+    assert initial_user_question(case) == "最初の疑問"
+
+
+def test_normalize_conversation_drops_empty_and_unknown_role():
+    normalized = normalize_conversation(
+        [
+            {"role": "system", "content": "x"},
+            {"role": "assistant", "content": "  "},
+            {"role": "user", "content": "ok"},
+        ]
+    )
+
+    assert normalized == [
+        {"role": "user", "content": "x"},
+        {"role": "user", "content": "ok"},
+    ]

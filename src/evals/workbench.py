@@ -18,6 +18,7 @@ DATASET_TYPE_OPTIONS = [
     "custom",
 ]
 ROUTE_OPTIONS = ["", "DEEPEN", "CLARIFY", "PARK", "FINISH"]
+CHAT_ROLE_OPTIONS = ["user", "assistant"]
 
 
 def load_workbench_state(path: Path) -> dict[str, Any]:
@@ -125,6 +126,12 @@ def ensure_case_defaults(case: dict[str, Any]) -> dict[str, Any]:
     output_block.setdefault("predicted_route", "")
     output_block.setdefault("predicted_reason", "")
 
+    raw_conversation = metadata.get("conversation")
+    if isinstance(raw_conversation, list):
+        metadata["conversation"] = normalize_conversation(raw_conversation)
+    else:
+        metadata["conversation"] = _build_conversation_from_blocks(input_block, output_block)
+
     source = normalized.setdefault("source", {})
     if not isinstance(source, dict):
         source = {}
@@ -175,6 +182,7 @@ def build_custom_case(
             "edited": True,
             "token_usage": None,
             "rag": None,
+            "conversation": [*context, {"role": "user", "content": user_input}, {"role": "assistant", "content": assistant_output}],
             "created_at": now,
         },
         "labels": {
@@ -271,6 +279,86 @@ def export_cases_to_jsonl(
     return len(filtered)
 
 
+def case_to_conversation(case: dict[str, Any]) -> list[dict[str, str]]:
+    """ケースから会話配列を取得する。"""
+    metadata = case.get("metadata") or {}
+    if isinstance(metadata, dict):
+        conversation = metadata.get("conversation")
+        if isinstance(conversation, list):
+            return normalize_conversation(conversation)
+    input_block = case.get("input") or {}
+    output_block = case.get("output") or {}
+    return _build_conversation_from_blocks(input_block, output_block)
+
+
+def apply_conversation_to_case(case: dict[str, Any], conversation: list[dict[str, str]]) -> dict[str, Any]:
+    """編集済み会話配列をケースの input/output/metadata へ反映する。"""
+    normalized_case = ensure_case_defaults(case)
+    normalized_conversation = normalize_conversation(conversation)
+    metadata = normalized_case.setdefault("metadata", {})
+    input_block = normalized_case.setdefault("input", {})
+    output_block = normalized_case.setdefault("output", {})
+
+    metadata["conversation"] = normalized_conversation
+
+    if not normalized_conversation:
+        input_block["context"] = []
+        input_block["user_input"] = ""
+        output_block["assistant_output"] = ""
+        return normalized_case
+
+    last_user_index = None
+    for idx in range(len(normalized_conversation) - 1, -1, -1):
+        if normalized_conversation[idx]["role"] == "user":
+            last_user_index = idx
+            break
+
+    if last_user_index is None:
+        input_block["context"] = normalized_conversation[:-1]
+        input_block["user_input"] = normalized_conversation[-1]["content"]
+    else:
+        input_block["context"] = normalized_conversation[:last_user_index]
+        input_block["user_input"] = normalized_conversation[last_user_index]["content"]
+
+    assistant_output = ""
+    if last_user_index is not None:
+        for idx in range(last_user_index + 1, len(normalized_conversation)):
+            if normalized_conversation[idx]["role"] == "assistant":
+                assistant_output = normalized_conversation[idx]["content"]
+                break
+    if not assistant_output:
+        for idx in range(len(normalized_conversation) - 1, -1, -1):
+            if normalized_conversation[idx]["role"] == "assistant":
+                assistant_output = normalized_conversation[idx]["content"]
+                break
+    output_block["assistant_output"] = assistant_output
+    return normalized_case
+
+
+def initial_user_question(case: dict[str, Any]) -> str:
+    """ボード表示用に、会話内の最初の user 発話を返す。"""
+    for message in case_to_conversation(case):
+        if message["role"] == "user":
+            return message["content"]
+    return str((case.get("input") or {}).get("user_input") or "")
+
+
+def normalize_conversation(conversation: list[Any]) -> list[dict[str, str]]:
+    """会話配列を role/content の最小構造へ正規化する。"""
+    normalized: list[dict[str, str]] = []
+    for message in conversation:
+        if not isinstance(message, dict):
+            continue
+        role = str(message.get("role") or "user").strip().lower()
+        if role not in CHAT_ROLE_OPTIONS:
+            role = "user"
+        content = str(message.get("content") or "").strip()
+        if not content:
+            continue
+        normalized.append({"role": role, "content": content})
+    return normalized
+
+
 def _sort_key_for_case(case: dict[str, Any]) -> str:
     source = case.get("source") or {}
     if not isinstance(source, dict):
@@ -294,3 +382,18 @@ def _empty_state() -> dict[str, Any]:
 def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
 
+
+def _build_conversation_from_blocks(
+    input_block: dict[str, Any] | Any,
+    output_block: dict[str, Any] | Any,
+) -> list[dict[str, str]]:
+    context = input_block.get("context") if isinstance(input_block, dict) else []
+    user_input = input_block.get("user_input") if isinstance(input_block, dict) else ""
+    assistant_output = output_block.get("assistant_output") if isinstance(output_block, dict) else ""
+
+    conversation: list[dict[str, str]] = normalize_conversation(context if isinstance(context, list) else [])
+    if str(user_input or "").strip():
+        conversation.append({"role": "user", "content": str(user_input).strip()})
+    if str(assistant_output or "").strip():
+        conversation.append({"role": "assistant", "content": str(assistant_output).strip()})
+    return conversation
