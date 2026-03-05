@@ -15,6 +15,7 @@ from src.evals.workbench import (
     apply_conversation_to_case,
     build_custom_case,
     case_to_conversation,
+    delete_conversation_messages_by_index,
     ensure_case_defaults,
     export_cases_to_jsonl,
     initial_user_question,
@@ -88,6 +89,11 @@ def main() -> None:
             options=["all", "edited_only", "unedited_only"],
             index=0,
         )
+        favorite_filter = st.selectbox(
+            "favorite",
+            options=["all", "favorite_only", "non_favorite_only"],
+            index=0,
+        )
         dataset_type_filter = st.multiselect(
             "データセット種別",
             options=sorted(
@@ -107,6 +113,7 @@ def main() -> None:
         merged_cases,
         routes=route_filter,
         edited_filter=edited_filter,
+        favorite_filter=favorite_filter,
         dataset_types=dataset_type_filter,
         query=search_query,
     )[:board_limit]
@@ -153,12 +160,16 @@ def _render_summary(all_cases: list[dict[str, Any]], visible_cases: list[dict[st
     edited_count = sum(
         1 for case in all_cases if bool((case.get("metadata") or {}).get("edited"))
     )
+    favorite_count = sum(
+        1 for case in all_cases if bool((case.get("metadata") or {}).get("favorite"))
+    )
     st.write(
         {
             "selected_logs": selected_logs,
             "total_cases": len(all_cases),
             "visible_cases": len(visible_cases),
             "edited_cases": edited_count,
+            "favorite_cases": favorite_count,
             "route_counts": {k: v for k, v in route_counts.items() if k},
         }
     )
@@ -184,6 +195,8 @@ def _render_dashboard_card(case: dict[str, Any], state: dict[str, Any], state_pa
                     f"route: `{output_block.get('predicted_route') or '-'}` / "
                     f"dataset: `{metadata.get('dataset_type') or '-'}`"
                 )
+                if metadata.get("favorite"):
+                    st.caption("favorite: true")
                 if source.get("assistant_timestamp"):
                     st.caption(f"time: {source['assistant_timestamp']}")
             with right:
@@ -191,6 +204,11 @@ def _render_dashboard_card(case: dict[str, Any], state: dict[str, Any], state_pa
                     "編集済み",
                     value=bool(metadata.get("edited")),
                     key=f"dash_edited_{widget_suffix}",
+                )
+                favorite = st.checkbox(
+                    "favorite",
+                    value=bool(metadata.get("favorite")),
+                    key=f"dash_favorite_{widget_suffix}",
                 )
 
             dataset_type = st.selectbox(
@@ -208,6 +226,7 @@ def _render_dashboard_card(case: dict[str, Any], state: dict[str, Any], state_pa
 
         if save_clicked or open_clicked:
             metadata["edited"] = bool(edited)
+            metadata["favorite"] = bool(favorite)
             metadata["dataset_type"] = dataset_type
             case["metadata"] = metadata
             upsert_case_in_state(case, state)
@@ -282,11 +301,21 @@ def _render_conversation_editor(case: dict[str, Any], state: dict[str, Any], sta
                 value=str(labels.get("label_note") or ""),
                 key=f"editor_label_note_{suffix}",
             )
+            favorite_note = st.text_input(
+                "favorite_note",
+                value=str(metadata.get("favorite_note") or ""),
+                key=f"editor_favorite_note_{suffix}",
+            )
         with head_right:
             edited = st.checkbox(
                 "編集済み",
                 value=bool(metadata.get("edited")),
                 key=f"editor_edited_{suffix}",
+            )
+            favorite = st.checkbox(
+                "favorite",
+                value=bool(metadata.get("favorite")),
+                key=f"editor_favorite_{suffix}",
             )
 
         st.markdown("### 会話")
@@ -336,17 +365,18 @@ def _render_conversation_editor(case: dict[str, Any], state: dict[str, Any], sta
     if not (save_clicked or save_and_back_clicked):
         return
 
-    rebuilt_conversation: list[dict[str, str]] = []
+    delete_indexes: set[int] = set()
+    editable_conversation: list[dict[str, str]] = []
     for index in range(len(conversation)):
         if st.session_state.get(f"msg_delete_{suffix}_{index}"):
-            continue
+            delete_indexes.add(index)
         role = st.session_state.get(f"msg_role_{suffix}_{index}", "user")
         content = str(st.session_state.get(f"msg_content_{suffix}_{index}", "")).strip()
-        if not content:
-            continue
         if role not in CHAT_ROLE_OPTIONS:
             role = "user"
-        rebuilt_conversation.append({"role": role, "content": content})
+        editable_conversation.append({"role": role, "content": content})
+
+    rebuilt_conversation = delete_conversation_messages_by_index(editable_conversation, delete_indexes)
 
     add_text = str(add_content or "").strip()
     if add_text:
@@ -362,6 +392,8 @@ def _render_conversation_editor(case: dict[str, Any], state: dict[str, Any], sta
     output_block = case.get("output") or {}
 
     metadata["edited"] = bool(edited)
+    metadata["favorite"] = bool(favorite)
+    metadata["favorite_note"] = favorite_note.strip() or None
     metadata["dataset_type"] = dataset_type
     output_block["predicted_route"] = predicted_route or ""
     labels["expected_route"] = expected_route or None
@@ -375,6 +407,7 @@ def _render_conversation_editor(case: dict[str, Any], state: dict[str, Any], sta
 
     upsert_case_in_state(case, state)
     save_workbench_state(state_path, state)
+    _reset_conversation_delete_flags(suffix)
 
     if save_and_back_clicked:
         st.session_state[SELECTED_CASE_KEY] = None
@@ -474,6 +507,7 @@ def _filter_cases(
     *,
     routes: list[str],
     edited_filter: str,
+    favorite_filter: str,
     dataset_types: list[str],
     query: str,
 ) -> list[dict[str, Any]]:
@@ -493,6 +527,12 @@ def _filter_cases(
         if edited_filter == "edited_only" and not edited:
             continue
         if edited_filter == "unedited_only" and edited:
+            continue
+
+        favorite = bool(metadata.get("favorite"))
+        if favorite_filter == "favorite_only" and not favorite:
+            continue
+        if favorite_filter == "non_favorite_only" and favorite:
             continue
 
         dataset_type = str(metadata.get("dataset_type") or "")
@@ -537,6 +577,12 @@ def _chunk(items: list[dict[str, Any]], size: int) -> list[list[dict[str, Any]]]
     return [items[idx : idx + size] for idx in range(0, len(items), size)]
 
 
+def _reset_conversation_delete_flags(suffix: str) -> None:
+    delete_prefix = f"msg_delete_{suffix}_"
+    for key in list(st.session_state.keys()):
+        if key.startswith(delete_prefix):
+            st.session_state[key] = False
+
+
 if __name__ == "__main__":
     main()
-

@@ -7,6 +7,7 @@ from src.evals.workbench import (
     apply_conversation_to_case,
     build_custom_case,
     case_to_conversation,
+    delete_conversation_messages_by_index,
     ensure_case_defaults,
     export_cases_to_jsonl,
     initial_user_question,
@@ -183,6 +184,37 @@ def test_apply_conversation_to_case_updates_input_output():
     assert updated["input"]["user_input"] == "新しい疑問"
     assert updated["output"]["assistant_output"] == "新しい返答"
     assert updated["metadata"]["conversation"] == conversation
+
+
+def test_delete_conversation_messages_by_index_deletes_target_index_only():
+    conversation = [
+        {"role": "assistant", "content": "先頭"},
+        {"role": "user", "content": "削除対象"},
+        {"role": "assistant", "content": "末尾"},
+    ]
+
+    updated = delete_conversation_messages_by_index(conversation, {1})
+
+    assert updated == [
+        {"role": "assistant", "content": "先頭"},
+        {"role": "assistant", "content": "末尾"},
+    ]
+
+
+def test_delete_conversation_messages_by_index_keeps_index_alignment_with_empty_content():
+    conversation = [
+        {"role": "assistant", "content": "  "},
+        {"role": "user", "content": "残す"},
+        {"role": "assistant", "content": "削除対象"},
+        {"role": "assistant", "content": "残す2"},
+    ]
+
+    updated = delete_conversation_messages_by_index(conversation, {2})
+
+    assert updated == [
+        {"role": "user", "content": "残す"},
+        {"role": "assistant", "content": "残す2"},
+    ]
 
 
 def test_initial_user_question_takes_first_user_message():
