@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from typing import Any
 
 from src.core.models import GateDecision
 
@@ -122,6 +123,38 @@ CAUSAL_CONNECTOR_PATTERNS = (
     r"都合上",
 )
 
+CTA_SLOT_ORDER = ("situation", "perception", "decision", "action", "difficulty")
+
+CTA_SITUATION_PATTERNS = (
+    r"(最初|序盤|中盤|終盤|最後)",
+    r"(とき|場面|タイミング|状況)",
+    r"(作業中|確認中|矯正中|押す前|押した後)",
+)
+
+CTA_PERCEPTION_PATTERNS = (
+    r"(見え|見え方|見づら|見にく|わかりづら|分かりづら)",
+    r"(気づ|違和感|兆候|感触|手応え)",
+    r"(ように見え|に見える|っぽく見える)",
+)
+
+CTA_DECISION_PATTERNS = (
+    r"(判断|決め|選ん|優先|方針|基準)",
+    r"(ことにした|ことにしてる|ようにした|ようにしてる)",
+    r"(先に|まず|いったん|あえて)",
+)
+
+CTA_ACTION_PATTERNS = (
+    r"(してる|していた|した|している)$",
+    r"(押し|回し|見て|見直し|確認し|試し|変え|使い|持ち替え)",
+    r"(チェック|固定|調整|矯正)",
+)
+
+CTA_DIFFICULTY_PATTERNS = (
+    r"(難し|困っ|迷っ|詰まっ|わから)",
+    r"(きつ|しんど|疲れ|重く)",
+    r"(怖い|不安|うまくいかない|見えない|失敗)",
+)
+
 
 def matches_any(text: str, patterns: tuple[str, ...]) -> bool:
     """文字列が正規表現パターン群のいずれかに一致するかを返す。"""
@@ -231,6 +264,61 @@ def select_best_text(candidates: list[tuple[int, str]]) -> str | None:
     return selected
 
 
+def pick_latest_matching_text(
+    candidates: list[tuple[int, str]],
+    patterns: tuple[str, ...],
+) -> str | None:
+    """候補文から、指定パターンに一致する最新の文を返す。"""
+    for _, text in reversed(candidates):
+        if matches_any(text, patterns):
+            return text
+    return None
+
+
+def build_cta_slots(
+    meaningful_texts: list[tuple[int, str]],
+    causal_pairs: list[tuple[int, str, str, str]],
+) -> dict[str, str | None]:
+    """会話文からCTA 5スロットを推定する。"""
+    slots: dict[str, str | None] = {
+        "situation": pick_latest_matching_text(meaningful_texts, CTA_SITUATION_PATTERNS),
+        "perception": pick_latest_matching_text(meaningful_texts, CTA_PERCEPTION_PATTERNS),
+        "decision": pick_latest_matching_text(meaningful_texts, CTA_DECISION_PATTERNS),
+        "action": pick_latest_matching_text(meaningful_texts, CTA_ACTION_PATTERNS),
+        "difficulty": pick_latest_matching_text(meaningful_texts, CTA_DIFFICULTY_PATTERNS),
+    }
+
+    if causal_pairs:
+        _, extracted_reason, extracted_item, _ = max(causal_pairs, key=lambda item: item[0])
+        if slots["difficulty"] is None and matches_any(extracted_reason, CTA_DIFFICULTY_PATTERNS):
+            slots["difficulty"] = extracted_reason
+        if slots["perception"] is None and matches_any(extracted_item, CTA_PERCEPTION_PATTERNS):
+            slots["perception"] = extracted_item
+        if slots["action"] is None and matches_any(extracted_item, CTA_ACTION_PATTERNS):
+            slots["action"] = extracted_item
+        if slots["decision"] is None and matches_any(extracted_item, CTA_DECISION_PATTERNS):
+            slots["decision"] = extracted_item
+
+    return slots
+
+
+def next_missing_cta_focus(cta_slots: dict[str, str | None]) -> str | None:
+    """未充足のCTAスロットのうち、次に聞くべき優先項目を返す。"""
+    for slot in CTA_SLOT_ORDER:
+        if not cta_slots.get(slot):
+            return slot
+    return None
+
+
+def is_cta_complete(cta_slots: dict[str, str | None]) -> bool:
+    """CTAスロット充足度から、ひと区切り可能かを判定する。"""
+    filled = sum(1 for slot in CTA_SLOT_ORDER if cta_slots.get(slot))
+    has_context = bool(cta_slots.get("situation") or cta_slots.get("perception"))
+    has_operation = bool(cta_slots.get("decision") or cta_slots.get("action"))
+    has_difficulty = bool(cta_slots.get("difficulty"))
+    return filled >= 3 and has_context and has_operation and has_difficulty
+
+
 def count_prior_user_turns(chat_context: list | None) -> int:
     """今回入力以前のユーザー発話数を返す。"""
     if not chat_context:
@@ -325,7 +413,7 @@ def should_force_broad_gather(
 def build_clarify_completion_json(
     user_input: str,
     chat_context: list | None = None,
-) -> dict[str, str | bool | None]:
+) -> dict[str, Any]:
     """CLARIFY完了判定のためのslotをルールベースで抽出する。"""
     user_texts = recent_user_texts(chat_context, limit=6)
     if not user_texts or user_texts[-1] != user_input:
@@ -361,11 +449,20 @@ def build_clarify_completion_json(
     if item is None:
         item = select_best_text(meaningful_texts)
 
+    cta_slots = build_cta_slots(meaningful_texts, causal_pairs)
+    cta_filled_count = sum(1 for slot in CTA_SLOT_ORDER if cta_slots.get(slot))
+    cta_complete = is_cta_complete(cta_slots)
+
     return {
         "kind": kind,
         "item": item,
         "reason": reason,
         "is_complete": bool(kind and item and reason),
+        "cta_slots": cta_slots,
+        "cta_filled_count": cta_filled_count,
+        "cta_completion_ratio": round(cta_filled_count / len(CTA_SLOT_ORDER), 2),
+        "cta_next_focus": next_missing_cta_focus(cta_slots),
+        "cta_is_complete": cta_complete,
     }
 
 
@@ -394,10 +491,12 @@ def apply_decision_overrides(
         )
 
     clarify_json = build_clarify_completion_json(text, chat_context)
-    if decision.route == "CLARIFY" and clarify_json.get("is_complete"):
+    if decision.route == "CLARIFY" and (
+        clarify_json.get("is_complete") or clarify_json.get("cta_is_complete")
+    ):
         return GateDecision(
             route="FINISH",
-            reason="Clarify JSON complete",
+            reason="Clarify/CTA complete",
             first_question="いまので筋はかなり伝わったよ、ほかに付け加えたいことある？",
         )
 

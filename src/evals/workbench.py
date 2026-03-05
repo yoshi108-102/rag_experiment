@@ -281,6 +281,21 @@ def export_cases_to_jsonl(
     return len(filtered)
 
 
+def build_conversation_jsonl_payload(conversation: list[Any]) -> str:
+    """会話（role/content）だけを1行JSONL向けJSON文字列にする。"""
+    normalized = normalize_conversation(conversation)
+    payload = {
+        "conversation": [
+            {
+                "role": item["role"],
+                "content": item["content"],
+            }
+            for item in normalized
+        ]
+    }
+    return json.dumps(payload, ensure_ascii=False)
+
+
 def case_to_conversation(case: dict[str, Any]) -> list[dict[str, str]]:
     """ケースから会話配列を取得する。"""
     metadata = case.get("metadata") or {}

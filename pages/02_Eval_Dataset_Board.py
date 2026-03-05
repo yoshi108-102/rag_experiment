@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from collections import Counter
 import hashlib
+import json
 from pathlib import Path
 from typing import Any
 
 import streamlit as st
+import streamlit.components.v1 as components
 
 from src.evals.log_to_eval import extract_eval_case_drafts, list_jsonl_files
 from src.evals.workbench import (
@@ -13,6 +15,7 @@ from src.evals.workbench import (
     DATASET_TYPE_OPTIONS,
     ROUTE_OPTIONS,
     apply_conversation_to_case,
+    build_conversation_jsonl_payload,
     build_custom_case,
     case_to_conversation,
     delete_conversation_messages_by_index,
@@ -269,6 +272,9 @@ def _render_conversation_editor(case: dict[str, Any], state: dict[str, Any], sta
 
     conversation = case_to_conversation(case)
     conversation = normalize_conversation(conversation)
+    ai_input_jsonl = build_conversation_jsonl_payload(conversation)
+
+    _render_ai_jsonl_copy_section(ai_input_jsonl, suffix)
 
     with st.form(f"conversation_editor_{suffix}", clear_on_submit=False):
         head_left, head_right = st.columns([0.75, 0.25])
@@ -575,6 +581,50 @@ def _chunk(items: list[dict[str, Any]], size: int) -> list[list[dict[str, Any]]]
     if size <= 0:
         return [items]
     return [items[idx : idx + size] for idx in range(0, len(items), size)]
+
+
+def _render_ai_jsonl_copy_section(jsonl_payload: str, suffix: str) -> None:
+    with st.expander("AI入力用JSONL（role/contentのみ）", expanded=False):
+        st.caption("このケースの会話を、AI投入用の1行JSONLでコピーできます。")
+        _render_clipboard_copy_button("JSONLをコピー", jsonl_payload, key=f"ai_jsonl_{suffix}")
+        st.code(jsonl_payload, language="json")
+
+
+def _render_clipboard_copy_button(label: str, text: str, *, key: str) -> None:
+    button_id = f"copy_btn_{key}"
+    status_id = f"copy_status_{key}"
+    text_json = json.dumps(text, ensure_ascii=False).replace("</", "<\\/")
+
+    components.html(
+        f"""
+        <div style="display:flex;align-items:center;gap:10px;margin:0.25rem 0 0.5rem;">
+          <button id="{button_id}" type="button" style="
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            padding: 0.35rem 0.75rem;
+            background: #ffffff;
+            cursor: pointer;
+          ">{label}</button>
+          <span id="{status_id}" style="font-size:0.85rem;color:#6b7280;"></span>
+        </div>
+        <script>
+        const button = document.getElementById("{button_id}");
+        const status = document.getElementById("{status_id}");
+        const textToCopy = {text_json};
+        if (button && status) {{
+          button.addEventListener("click", async () => {{
+            try {{
+              await navigator.clipboard.writeText(textToCopy);
+              status.textContent = "コピーしました";
+            }} catch (error) {{
+              status.textContent = "コピーに失敗しました";
+            }}
+          }});
+        }}
+        </script>
+        """,
+        height=58,
+    )
 
 
 def _reset_conversation_delete_flags(suffix: str) -> None:

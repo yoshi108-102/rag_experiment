@@ -6,6 +6,7 @@ import collections
 from typing import Any
 
 from src.chat_ui.constants import INITIAL_ASSISTANT_MESSAGE
+from src.chat_ui.cta_state import ensure_cta_state
 
 
 def initialize_session_state(session_state: Any) -> None:
@@ -37,6 +38,8 @@ def initialize_session_state(session_state: Any) -> None:
             "last_rag_turn": -999,
             "last_rag_signature": None,
         }
+
+    ensure_cta_state(session_state)
 
 
 def append_user_message(

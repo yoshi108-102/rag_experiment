@@ -5,6 +5,7 @@ from pathlib import Path
 
 from src.evals.workbench import (
     apply_conversation_to_case,
+    build_conversation_jsonl_payload,
     build_custom_case,
     case_to_conversation,
     delete_conversation_messages_by_index,
@@ -251,3 +252,20 @@ def test_normalize_conversation_drops_empty_and_unknown_role():
         {"role": "user", "content": "x"},
         {"role": "user", "content": "ok"},
     ]
+
+
+def test_build_conversation_jsonl_payload_keeps_only_role_and_content():
+    payload = build_conversation_jsonl_payload(
+        [
+            {"role": "assistant", "content": "確認"},
+            {"role": "user", "content": "困っています", "extra": "x"},
+            {"role": "system", "content": "drop to user role"},
+            {"role": "assistant", "content": "  "},
+        ]
+    )
+
+    assert payload == (
+        '{"conversation": [{"role": "assistant", "content": "確認"}, '
+        '{"role": "user", "content": "困っています"}, '
+        '{"role": "user", "content": "drop to user role"}]}'
+    )
