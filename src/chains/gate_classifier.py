@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any, Callable
+import uuid
 
 from langchain.agents import create_agent
 from langchain.agents.middleware import wrap_model_call
@@ -86,7 +87,10 @@ def parse_decision_with_override(
     return park_decision("No response content", PARK_NO_CONTENT_MESSAGE)
 
 
-def build_gate_invoke_middleware(response_format: dict[str, Any]):
+def build_gate_invoke_middleware(
+    response_format: dict[str, Any],
+    trace_sink: dict[str, Any] | None = None,
+):
     """Gate判定向けのモデル実行 middleware を生成する。"""
 
     @wrap_model_call(name="GateInvokeMiddleware")
@@ -95,7 +99,17 @@ def build_gate_invoke_middleware(response_format: dict[str, Any]):
         messages = list(request.messages)
         if request.system_message is not None:
             messages = [request.system_message, *messages]
+
+        if trace_sink is not None:
+            trace_sink["request_messages"] = messages
+            trace_sink["request_system_message"] = request.system_message
+            trace_sink["response_format"] = response_format
+            trace_sink["model_repr"] = repr(request.model)
+
         response = request.model.invoke(messages, response_format=response_format)
+
+        if trace_sink is not None:
+            trace_sink["raw_response"] = response
 
         # langgraph reducer expects message.id; some mocked AIMessage objects may miss it.
         try:
@@ -122,6 +136,16 @@ class GateClassifierChain:
 
     llm_factory: Callable[..., ChatOpenAI]
     reasoning_translator: Callable[[str], str | None]
+    trace_logger: Callable[[dict[str, Any]], None] | None = None
+
+    def _emit_trace(self, payload: dict[str, Any]) -> None:
+        """トレースロガーへ安全にペイロードを送信する。"""
+        if self.trace_logger is None:
+            return
+        try:
+            self.trace_logger(payload)
+        except Exception as e:
+            print(f"[Gate Trace Error] Failed to write trace log: {e}")
 
     def classify(
         self,
@@ -130,7 +154,17 @@ class GateClassifierChain:
         user_images: list[dict[str, str]] | None = None,
     ) -> tuple[GateDecision, str | None, dict[str, int] | None]:
         """ユーザー入力を解析し、`GateDecision`と補助情報を返す。"""
+        trace_id = uuid.uuid4().hex
+        trace_payload: dict[str, Any] = {
+            "trace_id": trace_id,
+            "user_input": user_input,
+            "chat_context": chat_context,
+            "user_images": user_images,
+            "model_name": default_gate_model_name(),
+        }
+
         messages = build_chat_messages(user_input, chat_context, user_images)
+        trace_payload["prepared_messages"] = messages
 
         llm = self.llm_factory(
             model=default_gate_model_name(),
@@ -142,24 +176,47 @@ class GateClassifierChain:
             },
         )
         gate_decision_schema = build_gate_decision_schema()
+        trace_payload["gate_decision_schema"] = gate_decision_schema
+        invoke_trace: dict[str, Any] = {}
+
         agent = create_agent(
             model=llm,
             tools=[],
             middleware=[
                 gate_system_prompt_middleware,
-                build_gate_invoke_middleware(gate_decision_schema),
+                build_gate_invoke_middleware(gate_decision_schema, invoke_trace),
             ],
         )
-        agent_output = agent.invoke({"messages": messages})
+        trace_payload["invoke_trace"] = invoke_trace
+
+        try:
+            agent_output = agent.invoke({"messages": messages})
+        except Exception as e:
+            trace_payload["error"] = {
+                "type": type(e).__name__,
+                "message": str(e),
+            }
+            self._emit_trace(trace_payload)
+            raise
+
+        trace_payload["agent_output"] = agent_output
         response = extract_last_ai_message(
             list(agent_output.get("messages", [])),
         )
+        trace_payload["raw_last_ai_message"] = response
 
         token_usage = extract_token_usage(response)
         reasoning, msg_content_json = extract_reasoning_and_decision_json(response.content)
+        trace_payload["raw_reasoning_summary"] = reasoning
+        trace_payload["msg_content_json"] = msg_content_json
         decision = parse_decision_with_override(msg_content_json, user_input, chat_context)
+        trace_payload["decision"] = decision
+        trace_payload["token_usage"] = token_usage
 
         if reasoning:
             reasoning = self.reasoning_translator(reasoning)
+        trace_payload["translated_reasoning"] = reasoning
+
+        self._emit_trace(trace_payload)
 
         return decision, reasoning, token_usage

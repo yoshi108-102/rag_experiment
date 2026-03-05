@@ -6,6 +6,7 @@ from langchain_openai import ChatOpenAI
 
 from src.agents.translator import translate_reasoning_to_japanese
 from src.chains.gate_classifier import GateClassifierChain
+from src.core.gate_trace_logging import log_gate_agent_trace
 from src.core.models import GateDecision
 from src.middleware.decision_guard import (
     apply_decision_overrides,
@@ -45,6 +46,7 @@ def analyze_input(
     chain = GateClassifierChain(
         llm_factory=ChatOpenAI,
         reasoning_translator=translate_reasoning_to_japanese,
+        trace_logger=log_gate_agent_trace,
     )
     return chain.classify(
         user_input=user_input,

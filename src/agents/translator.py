@@ -1,7 +1,21 @@
 """Gateモデルのreasoningテキストを日本語へ翻訳する補助処理。"""
 
+from __future__ import annotations
+
+import os
+
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
+
+
+TRANSLATION_ENABLED_ENV = "REASONING_TRANSLATION_ENABLED"
+TRANSLATION_MODEL_ENV = "REASONING_TRANSLATION_MODEL"
+DEFAULT_TRANSLATION_MODEL = "gpt-4o-mini"
+
+
+def _is_translation_enabled() -> bool:
+    raw = os.getenv(TRANSLATION_ENABLED_ENV, "0").strip().lower()
+    return raw not in {"0", "false", "off", "no"}
 
 
 def translate_reasoning_to_japanese(reasoning_text: str) -> str | None:
@@ -11,8 +25,15 @@ def translate_reasoning_to_japanese(reasoning_text: str) -> str | None:
     """
     if not reasoning_text:
         return None
-        
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3)
+
+    if not _is_translation_enabled():
+        return reasoning_text
+
+    model_name = (
+        os.getenv(TRANSLATION_MODEL_ENV, DEFAULT_TRANSLATION_MODEL).strip()
+        or DEFAULT_TRANSLATION_MODEL
+    )
+    llm = ChatOpenAI(model=model_name, temperature=0.3)
     
     system_prompt = (
         "You are an expert translator. "

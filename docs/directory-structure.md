@@ -20,7 +20,8 @@
 ├── app.py                       # Streamlit の薄いエントリポイント（画面構成）
 ├── main.py                      # CLI エントリポイント
 ├── docs/
-│   └── directory-structure.md   # このファイル
+│   ├── directory-structure.md   # このファイル
+│   └── current-workflow.md      # 現在の1ターン処理フロー
 ├── prompts/                     # LLM用プロンプト
 ├── src/
 │   ├── agents/                  # LLM呼び出し・推論補助（Gate/翻訳）

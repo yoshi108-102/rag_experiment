@@ -1,6 +1,7 @@
 import os
 import json
 import glob
+import argparse
 from pypdf import PdfReader
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -51,12 +52,35 @@ def extract_knowledge(system_prompt: str, user_prompt_template: str, text: str) 
         print(f"API Error: {e}")
         return None
 
+def resolve_data_dir(base_dir: str, data_dir_arg: str | None = None) -> str:
+    """入力PDFディレクトリを解決する。"""
+    if data_dir_arg:
+        return os.path.abspath(data_dir_arg)
+
+    preferred = os.path.join(base_dir, "raw_data")
+    fallback = os.path.join(base_dir, "data")
+    return preferred if os.path.isdir(preferred) else fallback
+
+
 def main():
+    parser = argparse.ArgumentParser(description="PDFから暗黙知JSONを抽出する")
+    parser.add_argument(
+        "--data-dir",
+        default=None,
+        help="入力PDFディレクトリ（未指定時は datasets/raw_data を優先）",
+    )
+    parser.add_argument(
+        "--output-dir",
+        default=None,
+        help="出力JSONディレクトリ（未指定時は datasets/output）",
+    )
+    args = parser.parse_args()
+
     base_dir = os.path.dirname(os.path.abspath(__file__))
     system_prompt_path = os.path.join(base_dir, "system_prompt.txt")
     user_prompt_path = os.path.join(base_dir, "user_prompt.txt")
-    data_dir = os.path.join(base_dir, "data")
-    output_dir = os.path.join(base_dir, "output")
+    data_dir = resolve_data_dir(base_dir, args.data_dir)
+    output_dir = os.path.abspath(args.output_dir) if args.output_dir else os.path.join(base_dir, "output")
     
     # 出力先ディレクトリの作成
     os.makedirs(output_dir, exist_ok=True)

@@ -73,6 +73,55 @@ def test_analyze_input(mock_translate, mock_chatopenai):
     mock_llm_instance.invoke.assert_called_once()
 
 
+@patch('src.agents.gate.log_gate_agent_trace')
+@patch('src.agents.gate.ChatOpenAI')
+@patch('src.agents.gate.translate_reasoning_to_japanese')
+def test_analyze_input_emits_deep_gate_trace(
+    mock_translate,
+    mock_chatopenai,
+    mock_trace_logger,
+):
+    mock_translate.return_value = "ユーザーは状況説明中です。"
+    mock_decision_json = json.dumps({
+        "route": "CLARIFY",
+        "reason": "Need detail",
+        "first_question": "どんな感じで見づらかった？",
+    })
+
+    mock_response = MagicMock(spec=AIMessage)
+    mock_response.content = [
+        {"type": "reasoning", "summary": [{"text": "Need broad gather first."}]},
+        {"type": "text", "text": mock_decision_json},
+    ]
+    mock_response.usage_metadata = {
+        "input_tokens": 120,
+        "output_tokens": 30,
+        "total_tokens": 150,
+    }
+
+    mock_llm_instance = MagicMock()
+    mock_chatopenai.return_value = mock_llm_instance
+    mock_llm_instance.invoke.return_value = mock_response
+
+    analyze_input(
+        "曲がってるかわかりづらかった",
+        chat_context=[
+            {"role": "assistant", "content": "今日はどうだった？"},
+            {"role": "user", "content": "曲がってるかわかりづらかった"},
+        ],
+    )
+
+    assert mock_trace_logger.called
+    trace_payload = mock_trace_logger.call_args[0][0]
+    assert trace_payload["user_input"] == "曲がってるかわかりづらかった"
+    assert trace_payload["msg_content_json"] == mock_decision_json
+    assert "prepared_messages" in trace_payload
+    assert "invoke_trace" in trace_payload
+    assert "raw_response" in trace_payload["invoke_trace"]
+    assert "agent_output" in trace_payload
+    assert trace_payload["decision"].route == "CLARIFY"
+
+
 @patch('src.agents.gate.ChatOpenAI')
 @patch('src.agents.gate.translate_reasoning_to_japanese')
 def test_analyze_input_does_not_duplicate_latest_user_message(mock_translate, mock_chatopenai):
@@ -191,6 +240,45 @@ def test_apply_decision_overrides_keeps_non_closure_input():
     overridden = _apply_decision_overrides(
         decision,
         "真ん中の位置決めが難しくて、どこを見ればいいかまだ掴めないです",
+    )
+
+    assert overridden == decision
+
+
+def test_apply_decision_overrides_switches_over_specific_binary_question_to_broad():
+    decision = GateDecision(
+        route="CLARIFY",
+        reason="Need detail",
+        first_question="そっか、馬台で転がす時と椅子で見る時どっちが見えづらかった？",
+    )
+
+    overridden = _apply_decision_overrides(
+        decision,
+        "曲がってるかわかりづらかった",
+        chat_context=[
+            {"role": "assistant", "content": "今日はどうだった？"},
+            {"role": "user", "content": "特に見え方が気になった"},
+        ],
+    )
+
+    assert overridden.route == "CLARIFY"
+    assert overridden.reason == "Broad gather before narrowing"
+    assert overridden.first_question == "どんな感じで見づらかったのか、もう少し聞かせて。"
+
+
+def test_apply_decision_overrides_keeps_binary_question_when_user_already_mentioned_options():
+    decision = GateDecision(
+        route="CLARIFY",
+        reason="Need detail",
+        first_question="馬台で転がす時と椅子で見る時どっちが見えづらかった？",
+    )
+
+    overridden = _apply_decision_overrides(
+        decision,
+        "馬台で転がす時と椅子で見る時のどっちも見づらかった",
+        chat_context=[
+            {"role": "assistant", "content": "どんな感じで見づらい？"},
+        ],
     )
 
     assert overridden == decision

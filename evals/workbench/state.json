@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "updated_at": "2026-03-03T10:40:28Z",
+  "cases": {
+    "1c506d8b72790c6e": {
+      "case_id": "1c506d8b72790c6e",
+      "source": {
+        "session_id": "streamlit-6b01b663fb93",
+        "log_path": "logs/chat_sessions/20260303T084506Z_streamlit_streamlit-6b01b663fb93.jsonl",
+        "user_message_index": 1,
+        "assistant_message_index": 2,
+        "user_timestamp": "2026-03-03T08:45:14.741Z",
+        "assistant_timestamp": "2026-03-03T08:45:23.536Z",
+        "is_custom": false
+      },
+      "input": {
+        "context": [
+          {
+            "role": "assistant",
+            "content": "お疲れ様です！本日の作業はどうでしたか？何か気になったことや、迷った瞬間はありましたか？"
+          }
+        ],
+        "user_input": "長くて曲がりが見にくかった"
+      },
+      "output": {
+        "assistant_output": "どの場面で曲がりがいちばん見えにくかった？",
+        "predicted_route": "CLARIFY",
+        "predicted_reason": "状況説明が中心で核が未整理"
+      },
+      "metadata": {
+        "token_usage": {
+          "input_tokens": 3751,
+          "output_tokens": 144,
+          "total_tokens": 3895
+        },
+        "rag": {
+          "enabled": false,
+          "trigger": null,
+          "skipped_reason": "not-triggered",
+          "retrieval_method": null,
+          "top_score": null,
+          "novelty": null,
+          "saved_pending": false
+        },
+        "created_at": "2026-03-03T10:40:28Z",
+        "dataset_type": "route_eval",
+        "edited": false,
+        "conversation": [
+          {
+            "role": "assistant",
+            "content": "お疲れ様です！本日の作業はどうでしたか？何か気になったことや、迷った瞬間はありましたか？"
+          },
+          {
+            "role": "user",
+            "content": "長くて曲がりが見にくかった"
+          },
+          {
+            "role": "assistant",
+            "content": "どの場面で曲がりがいちばん見えにくかった？"
+          }
+        ]
+      },
+      "labels": {
+        "expected_route": null,
+        "label_status": "unlabeled",
+        "labeler": null,
+        "label_note": null
+      }
+    }
+  }
+}

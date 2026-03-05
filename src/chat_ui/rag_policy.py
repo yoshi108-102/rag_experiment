@@ -50,7 +50,7 @@ def should_run_rag(session_state: Any, current_route: str) -> tuple[bool, str]:
     meta = session_state.rag_meta
 
     if current_route in BOUNDARY_ROUTES:
-        return True, "boundary"
+        return False, "boundary-skip"
 
     turns_since_last_rag = meta["turn_count"] - meta["last_rag_turn"]
     if turns_since_last_rag <= RAG_COOLDOWN_TURNS:

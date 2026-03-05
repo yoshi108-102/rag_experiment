@@ -70,6 +70,7 @@ User Input
    - ルーティング情報（デバッグ）
    - コンテキスト使用量（推定）と最新の実測 token usage（サイドバー）
 6. 会話ログを `logs/chat_sessions/*.jsonl` に保存
+7. Gate分類の生トレースを `logs/gate_agent_traces/*.jsonl` に保存（有効時）
 
 ## RAG（現在の実装）
 
@@ -128,6 +129,10 @@ cp .env.example .env
 - `RAG_EMBEDDING_MODEL`（任意。未指定時は `text-embedding-3-small`）
 - `GATE_MODEL`（任意。未指定時は `gpt-5.2`）
 - `GATE_CONTEXT_WINDOW_TOKENS`（任意。コンテキスト上限を明示したい場合に指定）
+- `GATE_TRACE_LOG_ENABLED`（任意。`0/false/off/no`でGate生トレース保存を無効化）
+- `REASONING_TRANSLATION_ENABLED`（任意。`1/true/on/yes` のときのみReasoning翻訳LLMを実行）
+- `REASONING_TRANSLATION_MODEL`（任意。翻訳に使うモデル名。既定 `gpt-4o-mini`）
+- `OVERALL_CONTEXT_MODE`（任意。`auto`/`always`/`off`。既定 `auto`）
 
 ## 実行方法
 
@@ -151,10 +156,65 @@ uv run python main.py
 uv run pytest tests
 ```
 
+## ログ分析（JSONL）
+
+会話ログとGateトレースを集計するスクリプトを追加しています。
+
+```bash
+uv run python scripts/analyze_jsonl_logs.py
+```
+
+保存したい場合:
+
+```bash
+uv run python scripts/analyze_jsonl_logs.py --out logs/analysis/summary.json
+```
+
+## Evalデータセット作成（ログ由来）
+
+`logs/chat_sessions/*.jsonl` から、評価用の1ターンケース（`user -> assistant`）を抽出して
+`evals/cases/*.jsonl` を作成できます。出力ケースには `expected_route: null` が入るため、
+その後に人手でラベル付けしてください。
+
+```bash
+uv run python scripts/build_eval_dataset_from_logs.py
+```
+
+主なオプション:
+
+```bash
+uv run python scripts/build_eval_dataset_from_logs.py \
+  --max-cases 100 \
+  --dedupe-mode user_and_route \
+  --route-quota "CLARIFY=50,DEEPEN=20,FINISH=20,PARK=10" \
+  --out evals/cases/route_eval_candidates_v1.jsonl
+```
+
+## EvalボードUI（Streamlit）
+
+編集ワークベンチを使うと、履歴ログをダッシュボードで読み込み、ケースを会話UIで編集できます。
+
+- ダッシュボードカードに「最初の疑問」を表示
+- カード右上の `編集済み` チェックボックスで管理
+- カードをクリックすると会話編集画面へ遷移
+- 会話編集画面は `app.py` に近い `chat_message` 表示で、発話単位に編集可能
+- `データセット種別` をケースごとに設定
+- 新規ケースを自作して追加
+- 編集済みケースだけをJSONL出力
+
+起動方法（既存の `app.py` と同じマルチページアプリとして表示されます）:
+
+```bash
+uv run streamlit run app.py
+```
+
+サイドバーから `Eval Dataset Board` ページを選択してください。
+
 ## 補足（現状の仕様メモ）
 
 - Gate判定は OpenAI Responses API + Structured Outputs を利用
-- `prompts/gate_prompt.md` を読み込み、`prompts/overall.md` が存在すれば前提知識として追記
-- `FINISH` / `PARK` は会話の区切り（boundary route）として RAGバッファ制御に使われる
+- `prompts/gate_prompt.md` を読み込み、`prompts/overall.md` は `OVERALL_CONTEXT_MODE` に応じて注入
+- `FINISH` / `PARK` は会話の区切りとして RAGバッファをクリア（RAG検索は実行しない）
 - Streamlit UIでは RAG / Routing / Reasoning のデバッグ表示が有効
 - Streamlit サイドバーにコンテキストウインドウ使用量（推定 + 最新API実測token usage）を表示
+- Gate分類の深い実行ログ（request/response含む）は `logs/gate_agent_traces/*.jsonl` に保存
