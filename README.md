@@ -27,6 +27,12 @@ User Input
   -> JSONLログ保存
 ```
 
+## コード読解ガイド
+
+- [app.py起点のコードリーディングガイド](docs/app-reading-guide.md)
+- [現在のワークフロー（1ターン処理）](docs/current-workflow.md)
+- [ディレクトリ構造メモ](docs/directory-structure.md)
+
 ### 主な責務
 
 - `src/agents/gate.py`
