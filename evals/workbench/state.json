@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-03-03T10:40:28Z",
+  "updated_at": "2026-03-05T11:36:01Z",
   "cases": {
     "1c506d8b72790c6e": {
       "case_id": "1c506d8b72790c6e",
@@ -18,12 +18,24 @@
           {
             "role": "assistant",
             "content": "お疲れ様です！本日の作業はどうでしたか？何か気になったことや、迷った瞬間はありましたか？"
+          },
+          {
+            "role": "user",
+            "content": "曲がりが見にくかった"
+          },
+          {
+            "role": "assistant",
+            "content": "それはきつかったね。どんな感じだったの？"
+          },
+          {
+            "role": "user",
+            "content": "棒材が長かった..."
           }
         ],
-        "user_input": "長くて曲がりが見にくかった"
+        "user_input": "棒材が長かった..."
       },
       "output": {
-        "assistant_output": "どの場面で曲がりがいちばん見えにくかった？",
+        "assistant_output": "それはきつかったね。どんな感じだったの？",
         "predicted_route": "CLARIFY",
         "predicted_reason": "状況説明が中心で核が未整理"
       },
@@ -52,13 +64,23 @@
           },
           {
             "role": "user",
-            "content": "長くて曲がりが見にくかった"
+            "content": "曲がりが見にくかった"
           },
           {
             "role": "assistant",
-            "content": "どの場面で曲がりがいちばん見えにくかった？"
+            "content": "それはきつかったね。どんな感じだったの？"
+          },
+          {
+            "role": "user",
+            "content": "棒材が長かった..."
+          },
+          {
+            "role": "user",
+            "content": "棒材が長かった..."
           }
-        ]
+        ],
+        "favorite": false,
+        "favorite_note": null
       },
       "labels": {
         "expected_route": null,

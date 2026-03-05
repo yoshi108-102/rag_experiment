@@ -101,6 +101,8 @@ def ensure_case_defaults(case: dict[str, Any]) -> dict[str, Any]:
         normalized["metadata"] = metadata
     metadata.setdefault("dataset_type", DEFAULT_DATASET_TYPE)
     metadata.setdefault("edited", False)
+    metadata.setdefault("favorite", False)
+    metadata.setdefault("favorite_note", None)
 
     labels = normalized.setdefault("labels", {})
     if not isinstance(labels, dict):
@@ -279,6 +281,21 @@ def export_cases_to_jsonl(
     return len(filtered)
 
 
+def build_conversation_jsonl_payload(conversation: list[Any]) -> str:
+    """会話（role/content）だけを1行JSONL向けJSON文字列にする。"""
+    normalized = normalize_conversation(conversation)
+    payload = {
+        "conversation": [
+            {
+                "role": item["role"],
+                "content": item["content"],
+            }
+            for item in normalized
+        ]
+    }
+    return json.dumps(payload, ensure_ascii=False)
+
+
 def case_to_conversation(case: dict[str, Any]) -> list[dict[str, str]]:
     """ケースから会話配列を取得する。"""
     metadata = case.get("metadata") or {}
@@ -333,6 +350,36 @@ def apply_conversation_to_case(case: dict[str, Any], conversation: list[dict[str
                 break
     output_block["assistant_output"] = assistant_output
     return normalized_case
+
+
+def delete_conversation_messages_by_index(
+    conversation: list[Any],
+    delete_indexes: set[int] | list[int] | tuple[int, ...],
+) -> list[dict[str, str]]:
+    """会話配列から、指定indexのメッセージだけを削除して正規化する。"""
+    delete_set: set[int] = set()
+    for raw_index in delete_indexes:
+        if isinstance(raw_index, bool):
+            continue
+        if isinstance(raw_index, int):
+            delete_set.add(raw_index)
+
+    rebuilt: list[dict[str, str]] = []
+    for index, message in enumerate(conversation):
+        if index in delete_set:
+            continue
+        if not isinstance(message, dict):
+            continue
+
+        role = str(message.get("role") or "user").strip().lower()
+        if role not in CHAT_ROLE_OPTIONS:
+            role = "user"
+        content = str(message.get("content") or "").strip()
+        if not content:
+            continue
+        rebuilt.append({"role": role, "content": content})
+
+    return rebuilt
 
 
 def initial_user_question(case: dict[str, Any]) -> str:

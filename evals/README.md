@@ -42,3 +42,21 @@ uv run python scripts/build_eval_dataset_from_logs.py \
 - `データセット種別` をカード単位で変更
 - 会話編集画面（chat_message表示）で発話を直接編集
 - 新規ケースを自作して追加
+- `favorite` チェックで「うまくいったケース」を保存
+
+## 5. favorite から下書き10件を増殖
+
+favorite 付きケースを種に、人手修正前提の下書きケースを生成します。
+
+```bash
+uv run python scripts/generate_eval_drafts_from_favorites.py \
+  --state-path evals/workbench/state.json \
+  --count 10
+```
+
+出力:
+
+- `evals/cases/favorite/favorite_snapshot_<batch_id>.jsonl`
+- `evals/cases/generated/generated_drafts_<batch_id>.jsonl`
+
+同時に、生成ケースは `state.json` へも保存されるため、Eval Board 上でそのまま人手編集できます。

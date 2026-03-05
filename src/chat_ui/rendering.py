@@ -73,6 +73,8 @@ def render_route_debug_panel(debug_info: dict[str, Any] | None) -> None:
         st.write(f"**Reason:** {debug_info.get('reason')}")
         if debug_info.get("clarify_json"):
             st.write("**CLARIFY JSON:**", debug_info["clarify_json"])
+        if debug_info.get("cta_state"):
+            st.write("**CTA State:**", debug_info["cta_state"])
 
         if "trigger" in rag_info:
             st.write(f"**RAG Trigger:** {rag_info.get('trigger')}")

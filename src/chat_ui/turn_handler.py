@@ -7,6 +7,7 @@ from typing import Any
 
 from src.agents.gate import analyze_input, build_clarify_completion_json
 from src.chat_ui.constants import BOUNDARY_ROUTES, RAG_ELIGIBLE_ROUTES
+from src.chat_ui.cta_state import update_cta_state
 from src.chat_ui.rag_policy import (
     build_buffered_idea_query,
     clear_idea_buffer_if_boundary,
@@ -42,6 +43,7 @@ def handle_user_turn(
     )
     response = execute_route(decision)
     clarify_json = build_clarify_completion_json(prompt, list(session_state.llm_context))
+    cta_state = update_cta_state(session_state, clarify_json, decision.route)
 
     update_idea_buffer(session_state, prompt, decision.route)
     rag_debug = _build_rag_debug(session_state, decision.route)
@@ -52,6 +54,7 @@ def handle_user_turn(
         "reasoning": reasoning,
         "rag": rag_debug,
         "clarify_json": clarify_json,
+        "cta_state": cta_state,
         "token_usage": token_usage,
     }
 

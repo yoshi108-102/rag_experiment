@@ -5,8 +5,10 @@ from pathlib import Path
 
 from src.evals.workbench import (
     apply_conversation_to_case,
+    build_conversation_jsonl_payload,
     build_custom_case,
     case_to_conversation,
+    delete_conversation_messages_by_index,
     ensure_case_defaults,
     export_cases_to_jsonl,
     initial_user_question,
@@ -185,6 +187,37 @@ def test_apply_conversation_to_case_updates_input_output():
     assert updated["metadata"]["conversation"] == conversation
 
 
+def test_delete_conversation_messages_by_index_deletes_target_index_only():
+    conversation = [
+        {"role": "assistant", "content": "先頭"},
+        {"role": "user", "content": "削除対象"},
+        {"role": "assistant", "content": "末尾"},
+    ]
+
+    updated = delete_conversation_messages_by_index(conversation, {1})
+
+    assert updated == [
+        {"role": "assistant", "content": "先頭"},
+        {"role": "assistant", "content": "末尾"},
+    ]
+
+
+def test_delete_conversation_messages_by_index_keeps_index_alignment_with_empty_content():
+    conversation = [
+        {"role": "assistant", "content": "  "},
+        {"role": "user", "content": "残す"},
+        {"role": "assistant", "content": "削除対象"},
+        {"role": "assistant", "content": "残す2"},
+    ]
+
+    updated = delete_conversation_messages_by_index(conversation, {2})
+
+    assert updated == [
+        {"role": "user", "content": "残す"},
+        {"role": "assistant", "content": "残す2"},
+    ]
+
+
 def test_initial_user_question_takes_first_user_message():
     case = ensure_case_defaults(
         {
@@ -219,3 +252,20 @@ def test_normalize_conversation_drops_empty_and_unknown_role():
         {"role": "user", "content": "x"},
         {"role": "user", "content": "ok"},
     ]
+
+
+def test_build_conversation_jsonl_payload_keeps_only_role_and_content():
+    payload = build_conversation_jsonl_payload(
+        [
+            {"role": "assistant", "content": "確認"},
+            {"role": "user", "content": "困っています", "extra": "x"},
+            {"role": "system", "content": "drop to user role"},
+            {"role": "assistant", "content": "  "},
+        ]
+    )
+
+    assert payload == (
+        '{"conversation": [{"role": "assistant", "content": "確認"}, '
+        '{"role": "user", "content": "困っています"}, '
+        '{"role": "user", "content": "drop to user role"}]}'
+    )

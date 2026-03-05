@@ -27,6 +27,12 @@ User Input
   -> JSONLログ保存
 ```
 
+## コード読解ガイド
+
+- [app.py起点のコードリーディングガイド](docs/app-reading-guide.md)
+- [現在のワークフロー（1ターン処理）](docs/current-workflow.md)
+- [ディレクトリ構造メモ](docs/directory-structure.md)
+
 ### 主な責務
 
 - `src/agents/gate.py`
@@ -196,6 +202,7 @@ uv run python scripts/build_eval_dataset_from_logs.py \
 
 - ダッシュボードカードに「最初の疑問」を表示
 - カード右上の `編集済み` チェックボックスで管理
+- カード右上の `favorite` チェックボックスで良ケースを保存
 - カードをクリックすると会話編集画面へ遷移
 - 会話編集画面は `app.py` に近い `chat_message` 表示で、発話単位に編集可能
 - `データセット種別` をケースごとに設定
@@ -209,6 +216,18 @@ uv run streamlit run app.py
 ```
 
 サイドバーから `Eval Dataset Board` ページを選択してください。
+
+### favorite から下書きケース生成
+
+`favorite` 付きケースを種に、手動修正前提の下書きケースを増殖できます（既定10件）。
+
+```bash
+uv run python scripts/generate_eval_drafts_from_favorites.py \
+  --state-path evals/workbench/state.json \
+  --count 10
+```
+
+生成物は `evals/cases/generated/` と `evals/cases/favorite/` にJSONL保存され、同時に `state.json` にも追記されます。
 
 ## 補足（現状の仕様メモ）
 
