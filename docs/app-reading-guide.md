@@ -25,7 +25,7 @@ flowchart TD
 ## 2. `app.py` の読み方（推奨順）
 
 ### Step 1: エントリ処理だけ読む（UI骨格）
-- [app.py](/Users/yoshi/zacitra_ws/sandbox_hiranuma/rag_experiment/app.py)
+- [app.py](../app.py)
 - 見るポイント:
   - `load_dotenv()` 実行タイミング
   - `get_chat_logger()` でロガーを `st.session_state` 復元する流れ
@@ -33,7 +33,7 @@ flowchart TD
   - `render_rag_sidebar()` と `render_chat_history()` の描画順
 
 ### Step 2: 入力から1ターン処理呼び出しまで
-- [app.py](/Users/yoshi/zacitra_ws/sandbox_hiranuma/rag_experiment/app.py)
+- [app.py](../app.py)
 - 見るポイント:
   - `extract_chat_submission()` で text/image を分離
   - `normalize_display_text()` と `normalize_gate_text()` の役割差
@@ -41,7 +41,7 @@ flowchart TD
   - `handle_user_turn()` に渡す入力は `gate_text` である点
 
 ### Step 3: 1ターンの業務ロジック本体
-- [src/chat_ui/turn_handler.py](/Users/yoshi/zacitra_ws/sandbox_hiranuma/rag_experiment/src/chat_ui/turn_handler.py)
+- [src/chat_ui/turn_handler.py](../src/chat_ui/turn_handler.py)
 - 呼び出し順:
   1. `analyze_input()`（Gate判定）
   2. `execute_route()`（routeに応じた返答）
@@ -51,10 +51,10 @@ flowchart TD
   6. `_build_rag_debug()`（RAG実行判定と実行）
 
 ### Step 4: Gate判定の中身
-- [src/agents/gate.py](/Users/yoshi/zacitra_ws/sandbox_hiranuma/rag_experiment/src/agents/gate.py)
-- [src/chains/gate_classifier.py](/Users/yoshi/zacitra_ws/sandbox_hiranuma/rag_experiment/src/chains/gate_classifier.py)
-- [src/middleware/prompt_middleware.py](/Users/yoshi/zacitra_ws/sandbox_hiranuma/rag_experiment/src/middleware/prompt_middleware.py)
-- [src/middleware/decision_guard.py](/Users/yoshi/zacitra_ws/sandbox_hiranuma/rag_experiment/src/middleware/decision_guard.py)
+- [src/agents/gate.py](../src/agents/gate.py)
+- [src/chains/gate_classifier.py](../src/chains/gate_classifier.py)
+- [src/middleware/prompt_middleware.py](../src/middleware/prompt_middleware.py)
+- [src/middleware/decision_guard.py](../src/middleware/decision_guard.py)
 - 見るポイント:
   - `dynamic_prompt` で system prompt を注入している箇所
   - Structured Output (`GateDecision`) のスキーマ生成
@@ -62,18 +62,18 @@ flowchart TD
   - `build_clarify_completion_json()` の `cta_slots` 推定と `cta_is_complete`
 
 ### Step 5: RAGの発火条件と実行
-- [src/chat_ui/rag_policy.py](/Users/yoshi/zacitra_ws/sandbox_hiranuma/rag_experiment/src/chat_ui/rag_policy.py)
-- [src/tools/rag_tools.py](/Users/yoshi/zacitra_ws/sandbox_hiranuma/rag_experiment/src/tools/rag_tools.py)
-- [src/rag/reflection_context.py](/Users/yoshi/zacitra_ws/sandbox_hiranuma/rag_experiment/src/rag/reflection_context.py)
+- [src/chat_ui/rag_policy.py](../src/chat_ui/rag_policy.py)
+- [src/tools/rag_tools.py](../src/tools/rag_tools.py)
+- [src/rag/reflection_context.py](../src/rag/reflection_context.py)
 - 見るポイント:
   - `BOUNDARY_ROUTES` でRAGを止める条件
   - `RAG_STREAK_TRIGGER` と `RAG_COOLDOWN_TURNS` の相互作用
   - 同一クエリスキップ (`should_skip_same_query`)
 
 ### Step 6: 状態と表示の責務境界
-- [src/chat_ui/session_state.py](/Users/yoshi/zacitra_ws/sandbox_hiranuma/rag_experiment/src/chat_ui/session_state.py)
-- [src/chat_ui/cta_state.py](/Users/yoshi/zacitra_ws/sandbox_hiranuma/rag_experiment/src/chat_ui/cta_state.py)
-- [src/chat_ui/rendering.py](/Users/yoshi/zacitra_ws/sandbox_hiranuma/rag_experiment/src/chat_ui/rendering.py)
+- [src/chat_ui/session_state.py](../src/chat_ui/session_state.py)
+- [src/chat_ui/cta_state.py](../src/chat_ui/cta_state.py)
+- [src/chat_ui/rendering.py](../src/chat_ui/rendering.py)
 - 見るポイント:
   - `messages`（表示用）と `llm_context`（判定用）の二層構造
   - `rag_meta` / `idea_buffer` / `cta_state` の更新責務
@@ -120,17 +120,17 @@ flowchart TD
 - `RAG` の cooldown と streak が実運用の会話テンポに合っているか
 
 ## 5. 併読すると理解が速い資料
-- [docs/current-workflow.md](/Users/yoshi/zacitra_ws/sandbox_hiranuma/rag_experiment/docs/current-workflow.md)
-- [docs/directory-structure.md](/Users/yoshi/zacitra_ws/sandbox_hiranuma/rag_experiment/docs/directory-structure.md)
-- [prompts/gate_prompt.md](/Users/yoshi/zacitra_ws/sandbox_hiranuma/rag_experiment/prompts/gate_prompt.md)
-- [tests/test_gate.py](/Users/yoshi/zacitra_ws/sandbox_hiranuma/rag_experiment/tests/test_gate.py)
-- [tests/test_rag_policy.py](/Users/yoshi/zacitra_ws/sandbox_hiranuma/rag_experiment/tests/test_rag_policy.py)
-- [tests/test_cta_state.py](/Users/yoshi/zacitra_ws/sandbox_hiranuma/rag_experiment/tests/test_cta_state.py)
+- [docs/current-workflow.md](../docs/current-workflow.md)
+- [docs/directory-structure.md](../docs/directory-structure.md)
+- [prompts/gate_prompt.md](../prompts/gate_prompt.md)
+- [tests/test_gate.py](../tests/test_gate.py)
+- [tests/test_rag_policy.py](../tests/test_rag_policy.py)
+- [tests/test_cta_state.py](../tests/test_cta_state.py)
 
 ## 6. まず30分で読むならこの順番
-1. [app.py](/Users/yoshi/zacitra_ws/sandbox_hiranuma/rag_experiment/app.py)
-2. [src/chat_ui/turn_handler.py](/Users/yoshi/zacitra_ws/sandbox_hiranuma/rag_experiment/src/chat_ui/turn_handler.py)
-3. [src/chains/gate_classifier.py](/Users/yoshi/zacitra_ws/sandbox_hiranuma/rag_experiment/src/chains/gate_classifier.py)
-4. [src/middleware/decision_guard.py](/Users/yoshi/zacitra_ws/sandbox_hiranuma/rag_experiment/src/middleware/decision_guard.py)
-5. [src/chat_ui/rag_policy.py](/Users/yoshi/zacitra_ws/sandbox_hiranuma/rag_experiment/src/chat_ui/rag_policy.py)
-6. [src/chat_ui/session_state.py](/Users/yoshi/zacitra_ws/sandbox_hiranuma/rag_experiment/src/chat_ui/session_state.py)
+1. [app.py](../app.py)
+2. [src/chat_ui/turn_handler.py](../src/chat_ui/turn_handler.py)
+3. [src/chains/gate_classifier.py](../src/chains/gate_classifier.py)
+4. [src/middleware/decision_guard.py](../src/middleware/decision_guard.py)
+5. [src/chat_ui/rag_policy.py](../src/chat_ui/rag_policy.py)
+6. [src/chat_ui/session_state.py](../src/chat_ui/session_state.py)
