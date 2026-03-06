@@ -27,7 +27,7 @@ flowchart TD
 ### Step 1: エントリ処理だけ読む（UI骨格）
 - [app.py](/Users/yoshi/zacitra_ws/sandbox_hiranuma/rag_experiment/app.py)
 - 見るポイント:
-  - `load_dotenv()` 実行タイミング
+  - `initialize_environment()`（内部で `load_dotenv()`）実行タイミング
   - `get_chat_logger()` でロガーを `st.session_state` 復元する流れ
   - `initialize_session_state()` 呼び出し位置
   - `render_rag_sidebar()` と `render_chat_history()` の描画順

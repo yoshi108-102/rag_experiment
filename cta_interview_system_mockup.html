@@ -480,47 +480,48 @@
           </thead>
           <tbody>
             <tr>
-              <td>interview_session</td>
+              <td>in_memory_session_store</td>
               <td>session_id, user_id, subject, start_at, end_at, status</td>
-              <td>インタビュー単位の進行・完了管理</td>
+              <td>インタビュー単位の進行・完了管理（プロセス内メモリ）</td>
             </tr>
             <tr>
-              <td>interview_turn</td>
+              <td>in_memory_turn_store</td>
               <td>turn_id, session_id, topic, question_type, backchannel_type, generation_mode, user_text, agent_text</td>
-              <td>対話履歴と遷移結果の記録</td>
+              <td>対話履歴と遷移結果の記録（プロセス内メモリ）</td>
             </tr>
             <tr>
-              <td>turn_features</td>
+              <td>in_memory_feature_store</td>
               <td>keywords, posnegq_flag, clause_count, cognitive_action_label</td>
               <td>質問遷移ルール判定用の特徴量保持</td>
             </tr>
             <tr>
-              <td>subject_topic_master</td>
+              <td>in_memory_subject_topic_master</td>
               <td>subject_id, topic_id, display_order, active_flag</td>
               <td>領域依存部分の管理（入替可能）</td>
             </tr>
             <tr>
-              <td>phrase_dictionary</td>
+              <td>in_memory_phrase_dictionary</td>
               <td>phrase_id, type_group, type_code, text, locale</td>
               <td>質問/相槌テンプレート管理</td>
             </tr>
             <tr>
-              <td>knowledge_candidate</td>
+              <td>in_memory_knowledge_candidate_store</td>
               <td>cue, decision, action, difficulty, exception, confidence</td>
               <td>抽出知識の構造化保存</td>
             </tr>
             <tr>
-              <td>past_record_index</td>
+              <td>in_memory_past_record_index</td>
               <td>topic_id, keyword, answer_excerpt, created_at</td>
               <td>KA/RQの候補提示材料</td>
             </tr>
             <tr>
-              <td>generation_trace</td>
+              <td>in_memory_generation_trace</td>
               <td>turn_id, model_name, prompt_version, latency_ms, fallback_used</td>
               <td>LLM導入時の品質・監査・コスト分析</td>
             </tr>
           </tbody>
         </table>
+        <p class="small" style="margin-top:10px;">MVPではDB接続を行わず、上記データは実行中メモリで保持する。必要時のみファイル出力で持ち出す。</p>
       </section>
 
       <section class="section" id="sec8">
@@ -584,9 +585,9 @@
             </tr>
             <tr>
               <td>IF-03</td>
-              <td>DB/ストレージ</td>
-              <td>ログ・辞書・知識候補保存</td>
-              <td>監査用の変更履歴を保持</td>
+              <td>環境変数（.env）</td>
+              <td>OpenAIキーとモデル設定の注入</td>
+              <td>アプリ起動時に `load_dotenv` で読み込む</td>
             </tr>
           </tbody>
         </table>
@@ -634,6 +635,11 @@
               <td>質問文は短文を基本とし、専門用語には補足を付ける</td>
             </tr>
             <tr>
+              <td>NFR-10</td>
+              <td>構成</td>
+              <td>MVPはLangChain + OpenAIを標準構成とし、生成処理の実装基盤を統一する</td>
+            </tr>
+            <tr>
               <td>NFR-07</td>
               <td>コスト</td>
               <td>Phase 2では1セッション当たりのLLM利用量上限を設定し、超過時はテンプレートモードへ切替える</td>
@@ -656,6 +662,8 @@
         <h2>11. 制約・前提条件</h2>
         <ul>
           <li>領域依存知識は subject/topic リストに閉じ込め、遷移ルール本体は共通化する。</li>
+          <li>MVPでは永続DBを導入せず、セッション/辞書/ログはインメモリ保持を前提とする。</li>
+          <li>生成基盤は LangChain + OpenAI を標準とし、環境変数は `load_dotenv` で注入する。</li>
           <li>初期リリースは TEMPLATE_RANDOM を既定値とし、LLMは検証環境から段階導入する。</li>
           <li>外部APIの応答品質は一定でないため、固定テンプレート出力モードを恒久的に保持する。</li>
           <li>実運用では倫理審査・同意取得・ログ保管期間のルールを別紙で定義する。</li>
