@@ -2,7 +2,7 @@
 .env
 .env.*
 !.env.example
-
+*.pdf
 # Python-generated files
 __pycache__/
 *.py[cod]
