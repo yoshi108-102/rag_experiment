@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CTAインタビューエージェント 要件定義書（ドラフト）</title>
+  <style>
+    :root {
+      --bg: #f2f4f8;
+      --panel: #ffffff;
+      --ink: #1f2937;
+      --muted: #6b7280;
+      --line: #d1d5db;
+      --accent: #0f4c81;
+      --accent-soft: #e7f0f8;
+      --ok: #1f7a4d;
+      --warn: #8a5a00;
+      --shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+      --radius: 14px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 15% -10%, #dbeafe 0%, transparent 36%),
+        radial-gradient(circle at 90% 0%, #d9f2ec 0%, transparent 30%),
+        var(--bg);
+      font-family: "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
+      line-height: 1.65;
+    }
+
+    a { color: var(--accent); }
+
+    .wrap {
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 28px 20px 64px;
+      display: grid;
+      grid-template-columns: 270px 1fr;
+      gap: 20px;
+    }
+
+    .toc {
+      position: sticky;
+      top: 16px;
+      align-self: start;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 18px;
+    }
+
+    .toc h2 {
+      margin: 0 0 10px;
+      font-size: 15px;
+    }
+
+    .toc ol {
+      margin: 0;
+      padding-left: 18px;
+      display: grid;
+      gap: 6px;
+      font-size: 13px;
+    }
+
+    .doc {
+      display: grid;
+      gap: 16px;
+    }
+
+    .hero,
+    .section {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 22px;
+    }
+
+    .badge {
+      display: inline-block;
+      margin-bottom: 8px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .04em;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 30px;
+      line-height: 1.25;
+    }
+
+    .lead {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    h2 {
+      margin: 0 0 12px;
+      font-size: 21px;
+      border-left: 5px solid var(--accent);
+      padding-left: 10px;
+    }
+
+    h3 {
+      margin: 0 0 8px;
+      font-size: 16px;
+    }
+
+    p { margin: 0; }
+
+    .grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .grid.cols-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px;
+      background: #fff;
+    }
+
+    .label {
+      display: inline-block;
+      margin-right: 6px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .label.ok {
+      background: #e7f7ee;
+      color: var(--ok);
+    }
+
+    .label.warn {
+      background: #fff2d9;
+      color: var(--warn);
+    }
+
+    ul {
+      margin: 8px 0 0;
+      padding-left: 18px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+      font-size: 13px;
+    }
+
+    th,
+    td {
+      border: 1px solid var(--line);
+      padding: 9px 10px;
+      vertical-align: top;
+      text-align: left;
+    }
+
+    th {
+      background: #f8fafc;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .small {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .flow .card {
+      min-height: 120px;
+    }
+
+    .footer {
+      color: var(--muted);
+      font-size: 12px;
+      text-align: right;
+      padding-top: 6px;
+    }
+
+    @media (max-width: 1080px) {
+      .wrap {
+        grid-template-columns: 1fr;
+      }
+
+      .toc {
+        position: static;
+      }
+    }
+
+    @media (max-width: 720px) {
+      h1 { font-size: 24px; }
+      h2 { font-size: 18px; }
+      .grid.cols-2,
+      .flow {
+        grid-template-columns: 1fr;
+      }
+      .hero,
+      .section {
+        padding: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <aside class="toc" aria-label="目次">
+      <h2>目次</h2>
+      <ol>
+        <li><a href="#sec1">文書情報</a></li>
+        <li><a href="#sec2">背景・目的</a></li>
+        <li><a href="#sec3">スコープ</a></li>
+        <li><a href="#sec4">システム概要</a></li>
+        <li><a href="#sec5">業務フロー</a></li>
+        <li><a href="#sec6">機能要件</a></li>
+        <li><a href="#sec7">データ要件</a></li>
+        <li><a href="#sec8">画面要件</a></li>
+        <li><a href="#sec9">外部IF要件</a></li>
+        <li><a href="#sec10">非機能要件</a></li>
+        <li><a href="#sec11">制約・前提</a></li>
+        <li><a href="#sec12">受入基準</a></li>
+        <li><a href="#sec13">未決事項</a></li>
+      </ol>
+    </aside>
+
+    <main class="doc">
+      <section class="hero">
+        <div class="badge">REQUIREMENTS DRAFT</div>
+        <h1>CTAインタビューエージェント 要件定義書</h1>
+        <p class="lead">
+          参考文献: 21_433.pdf（認知タスク分析向けインタビュアエージェント研究）<br>
+          本書は、研究内容を実装プロジェクト向けの一般的な要件定義書形式に再構成したドラフト。
+        </p>
+      </section>
+
+      <section class="section" id="sec1">
+        <h2>1. 文書情報</h2>
+        <table>
+          <tr><th>文書名</th><td>CTAインタビューエージェント 要件定義書</td></tr>
+          <tr><th>版数</th><td>v0.1（初版）</td></tr>
+          <tr><th>作成日</th><td>2026-03-06</td></tr>
+          <tr><th>作成目的</th><td>開発着手前に要件の範囲・優先度・受入条件を明確化する</td></tr>
+          <tr><th>対象読者</th><td>PO、開発、QA、運用、研究担当</td></tr>
+        </table>
+      </section>
+
+      <section class="section" id="sec2">
+        <h2>2. 背景・目的</h2>
+        <div class="grid cols-2">
+          <div class="card">
+            <h3>背景</h3>
+            <p>CTAインタビューは有効だが、準備・実施・分析に工数がかかり、実施品質がインタビュア技能に依存する。</p>
+          </div>
+          <div class="card">
+            <h3>目的</h3>
+            <p>半構造化インタビューを対話エージェント化し、自然さを保ちながら知識抽出の一貫性と再利用性を高める。</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="sec3">
+        <h2>3. スコープ</h2>
+        <div class="grid cols-2">
+          <div class="card">
+            <h3>対象範囲（In Scope）</h3>
+            <ul>
+              <li>テキストベースのCTAインタビュー実行</li>
+              <li>subject/topicに基づく文脈制御</li>
+              <li>質問タイプ（STD/CDM/KA/RQ）の遷移制御</li>
+              <li>相槌生成、回答解析、会話ログ保存</li>
+              <li>知識抽出候補（構造化データ）の出力</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>対象外（Out of Scope）</h3>
+            <ul>
+              <li>音声入出力・音声認識</li>
+              <li>自動採点による人格/感情診断</li>
+              <li>医療/法務等の専門助言の自動最終判断</li>
+              <li>無制限な自由会話ボット機能</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="sec4">
+        <h2>4. システム概要</h2>
+        <div class="grid cols-2">
+          <div class="card">
+            <h3>構成要素</h3>
+            <ul>
+              <li>Interview Process Manager（状態管理）</li>
+              <li>Input Analyzer（キーワード・肯否疑問・分割節解析）</li>
+              <li>Question Selector（質問タイプ選択ルール）</li>
+              <li>Backchannel Selector（相槌タイプ遷移）</li>
+              <li>Response Composer（応答文生成）</li>
+              <li>Knowledge Extractor（知識候補抽出）</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>マスタ/辞書</h3>
+            <ul>
+              <li>話題（subject）リスト</li>
+              <li>質問対象（topic）リスト</li>
+              <li>質問フレーズ辞書（22タイプ想定）</li>
+              <li>相槌フレーズ辞書（9タイプ想定）</li>
+              <li>CDMプローブ質問群</li>
+              <li>KA用過去回答・RQ用語句リスト</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="sec5">
+        <h2>5. 業務フロー（論理）</h2>
+        <div class="flow">
+          <div class="card">
+            <h3>① セッション開始</h3>
+            <p>対象subjectを確定し、導入質問（STD1）を実行。</p>
+          </div>
+          <div class="card">
+            <h3>② 回答解析</h3>
+            <p>キーワード、認知行動、肯定/否定/疑問、分割節数を更新。</p>
+          </div>
+          <div class="card">
+            <h3>③ 質問・相槌選択</h3>
+            <p>状態変数と遷移ルールから次の質問タイプ/相槌タイプを決定。</p>
+          </div>
+          <div class="card">
+            <h3>④ topic/subject遷移</h3>
+            <p>終了条件充足時に次topic、話題完了時に次subject、最終でSTD11。</p>
+          </div>
+        </div>
+        <p class="small" style="margin-top:10px;">注: 各topic内で質問を反復し、条件によりCDM/KA/RQ質問へ分岐する。</p>
+      </section>
+
+      <section class="section" id="sec6">
+        <h2>6. 機能要件</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>要件</th>
+              <th>優先度</th>
+              <th>受入条件（抜粋）</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>FR-01</td>
+              <td>セッション管理: 開始、進行、終了（STD11）を管理できること</td>
+              <td>Must</td>
+              <td>開始時にsubjectを設定し、完了時に終了メッセージとログ確定が行われる</td>
+            </tr>
+            <tr>
+              <td>FR-02</td>
+              <td>文脈制御: subject/topic単位の進行順を管理できること</td>
+              <td>Must</td>
+              <td>topic完了条件を満たした場合に次topicへ遷移する</td>
+            </tr>
+            <tr>
+              <td>FR-03</td>
+              <td>質問タイプ遷移: 状態変数に基づき質問タイプを選択できること</td>
+              <td>Must</td>
+              <td>肯否疑問/キーワード/分割節数を遷移判定に利用する</td>
+            </tr>
+            <tr>
+              <td>FR-04</td>
+              <td>相槌遷移: 質問回数・文脈に応じて相槌タイプを選択できること</td>
+              <td>Should</td>
+              <td>新しい話段への遷移時は相槌なし応答を選択可能</td>
+            </tr>
+            <tr>
+              <td>FR-05</td>
+              <td>CDMプローブ: CDM質問をカテゴリ別に提示できること</td>
+              <td>Must</td>
+              <td>情報獲得/状況認識/意思決定/行動カテゴリから質問を出せる</td>
+            </tr>
+            <tr>
+              <td>FR-06</td>
+              <td>Knowledge Awareness: 過去回答を参照した質問（KA1）を実行できること</td>
+              <td>Should</td>
+              <td>類似topicの過去回答を引用し、比較質問を提示できる</td>
+            </tr>
+            <tr>
+              <td>FR-07</td>
+              <td>Ranking Question: 候補語句リスト提示と再深掘り（RQ1/RQ2）ができること</td>
+              <td>Should</td>
+              <td>提示語句から利用者選択を受け、次質問対象に反映できる</td>
+            </tr>
+            <tr>
+              <td>FR-08</td>
+              <td>回答解析: 入力文の基本特徴量を抽出できること</td>
+              <td>Must</td>
+              <td>キーワード、肯否疑問、分割節数、認知行動分類を保持できる</td>
+            </tr>
+            <tr>
+              <td>FR-09</td>
+              <td>応答生成: 相槌 + 質問文の複文を生成できること</td>
+              <td>Must</td>
+              <td>質問タイプに対応するテンプレート/生成結果が返る</td>
+            </tr>
+            <tr>
+              <td>FR-10</td>
+              <td>ログ保存: ターン単位で状態変数と入出力を保存できること</td>
+              <td>Must</td>
+              <td>後日分析用に会話履歴と遷移判断根拠を追跡できる</td>
+            </tr>
+            <tr>
+              <td>FR-11</td>
+              <td>設定変更: subject/topicや辞書を運用者が更新できること</td>
+              <td>Could</td>
+              <td>コード変更なしで対象領域を切替可能</td>
+            </tr>
+            <tr>
+              <td>FR-12</td>
+              <td>例外処理: 無回答・短回答・逸脱回答に対するフォールバックがあること</td>
+              <td>Must</td>
+              <td>再質問、確認質問、終了確認のいずれかに遷移できる</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="section" id="sec7">
+        <h2>7. データ要件</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>エンティティ</th>
+              <th>主な項目</th>
+              <th>用途</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>interview_session</td>
+              <td>session_id, user_id, subject, start_at, end_at, status</td>
+              <td>インタビュー単位の進行・完了管理</td>
+            </tr>
+            <tr>
+              <td>interview_turn</td>
+              <td>turn_id, session_id, topic, question_type, backchannel_type, user_text, agent_text</td>
+              <td>対話履歴と遷移結果の記録</td>
+            </tr>
+            <tr>
+              <td>turn_features</td>
+              <td>keywords, posnegq_flag, clause_count, cognitive_action_label</td>
+              <td>質問遷移ルール判定用の特徴量保持</td>
+            </tr>
+            <tr>
+              <td>subject_topic_master</td>
+              <td>subject_id, topic_id, display_order, active_flag</td>
+              <td>領域依存部分の管理（入替可能）</td>
+            </tr>
+            <tr>
+              <td>phrase_dictionary</td>
+              <td>phrase_id, type_group, type_code, text, locale</td>
+              <td>質問/相槌テンプレート管理</td>
+            </tr>
+            <tr>
+              <td>knowledge_candidate</td>
+              <td>cue, decision, action, difficulty, exception, confidence</td>
+              <td>抽出知識の構造化保存</td>
+            </tr>
+            <tr>
+              <td>past_record_index</td>
+              <td>topic_id, keyword, answer_excerpt, created_at</td>
+              <td>KA/RQの候補提示材料</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="section" id="sec8">
+        <h2>8. 画面要件</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>画面ID</th>
+              <th>画面名</th>
+              <th>主な表示・操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>UI-01</td>
+              <td>インタビュー画面</td>
+              <td>進行中質問、回答入力、補助説明、終了確認</td>
+            </tr>
+            <tr>
+              <td>UI-02</td>
+              <td>進行モニタ画面</td>
+              <td>現在subject/topic、質問回数、未回収論点の可視化</td>
+            </tr>
+            <tr>
+              <td>UI-03</td>
+              <td>辞書・マスタ管理画面</td>
+              <td>質問フレーズ、相槌、subject/topicの追加・編集・無効化</td>
+            </tr>
+            <tr>
+              <td>UI-04</td>
+              <td>ログ閲覧画面</td>
+              <td>ターン履歴、遷移根拠、抽出知識の確認・エクスポート</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="section" id="sec9">
+        <h2>9. 外部インタフェース要件</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>IF-ID</th>
+              <th>接続先</th>
+              <th>利用目的</th>
+              <th>備考</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>IF-01</td>
+              <td>自然言語解析API</td>
+              <td>形態素解析・キーワード抽出・補助分類</td>
+              <td>障害時は簡易解析へフォールバック</td>
+            </tr>
+            <tr>
+              <td>IF-02</td>
+              <td>生成AI API</td>
+              <td>質問文/要約文の自然化</td>
+              <td>固定テンプレート出力モードを用意</td>
+            </tr>
+            <tr>
+              <td>IF-03</td>
+              <td>DB/ストレージ</td>
+              <td>ログ・辞書・知識候補保存</td>
+              <td>監査用の変更履歴を保持</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="section" id="sec10">
+        <h2>10. 非機能要件</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>カテゴリ</th>
+              <th>要件</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>NFR-01</td>
+              <td>性能</td>
+              <td>1ターン応答時間（質問選択+生成）を通常時5秒以内（目標P95）とする</td>
+            </tr>
+            <tr>
+              <td>NFR-02</td>
+              <td>可用性</td>
+              <td>セッション中断時に直前ターンから再開できること</td>
+            </tr>
+            <tr>
+              <td>NFR-03</td>
+              <td>保守性</td>
+              <td>subject/topic差し替えのみで新テーマへ展開できること</td>
+            </tr>
+            <tr>
+              <td>NFR-04</td>
+              <td>監査性</td>
+              <td>質問タイプ遷移の判定根拠（特徴量・ルール）を追跡可能にする</td>
+            </tr>
+            <tr>
+              <td>NFR-05</td>
+              <td>セキュリティ</td>
+              <td>個人情報を含む自由記述の保存時にマスキング/アクセス制御を適用する</td>
+            </tr>
+            <tr>
+              <td>NFR-06</td>
+              <td>ユーザビリティ</td>
+              <td>質問文は短文を基本とし、専門用語には補足を付ける</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="section" id="sec11">
+        <h2>11. 制約・前提条件</h2>
+        <ul>
+          <li>領域依存知識は subject/topic リストに閉じ込め、遷移ルール本体は共通化する。</li>
+          <li>外部APIの応答品質は一定でないため、固定テンプレート出力モードを保持する。</li>
+          <li>実運用では倫理審査・同意取得・ログ保管期間のルールを別紙で定義する。</li>
+          <li>本書の数値目標は初期値であり、PoC結果で改定する。</li>
+        </ul>
+      </section>
+
+      <section class="section" id="sec12">
+        <h2>12. 受入基準（初期案）</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>観点</th>
+              <th>基準</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>機能完備性</td>
+              <td>Must要件（FR-01,02,03,05,08,09,10,12）を全て満たす</td>
+            </tr>
+            <tr>
+              <td>遷移妥当性</td>
+              <td>任意の10セッションで、遷移不能/循環バグが発生しない</td>
+            </tr>
+            <tr>
+              <td>知識抽出性</td>
+              <td>回答分類で「情報が得られていない」比率がベースラインを上回らない</td>
+            </tr>
+            <tr>
+              <td>自然さ</td>
+              <td>主観評価アンケートで構造化固定質問方式に対して同等以上の評価を得る</td>
+            </tr>
+            <tr>
+              <td>運用性</td>
+              <td>管理者が画面操作のみでsubject/topicを追加し、反映できる</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="section" id="sec13">
+        <h2>13. 未決事項・検討課題</h2>
+        <ul>
+          <li>回答分類（タスク達成度）の自動判定基準をルールベースで行うか、モデル評価に寄せるか。</li>
+          <li>KAで提示する過去回答の匿名化・要約粒度の運用方針。</li>
+          <li>RQ候補語句の生成頻度と品質管理手順。</li>
+          <li>医療・防災等の高リスク領域でのガードレール設計。</li>
+        </ul>
+      </section>
+
+      <div class="footer">Document Path: /Users/yoshi/zacitra_ws/sandbox_hiranuma/rag_experiment/cta_interview_system_mockup.html</div>
+    </main>
+  </div>
+</body>
+</html>
