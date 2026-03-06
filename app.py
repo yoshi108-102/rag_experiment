@@ -1,5 +1,4 @@
 import streamlit as st
-from dotenv import load_dotenv
 
 from src.agents.gate import load_gate_prompt
 from src.chat_ui.constants import INITIAL_ASSISTANT_MESSAGE
@@ -25,9 +24,10 @@ from src.chat_ui.session_state import (
 )
 from src.chat_ui.turn_handler import handle_user_turn
 from src.core.chat_logging import ChatSessionLogger
+from src.core.env import initialize_environment
 
 
-load_dotenv()
+initialize_environment()
 
 st.set_page_config(page_title="Reflective Gate Chat", page_icon="🧠", layout="centered")
 

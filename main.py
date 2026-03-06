@@ -1,11 +1,11 @@
 import collections
-from dotenv import load_dotenv
 from src.agents.gate import analyze_input
 from src.routing.router import execute_route
 from src.core.chat_logging import ChatSessionLogger
+from src.core.env import initialize_environment
 
 # Load environment variables from .env file
-load_dotenv()
+initialize_environment()
 
 INITIAL_ASSISTANT_GREETING = "お疲れ様です！本日の作業はどうでしたか？何か気になったことや、迷った瞬間はありましたか？"
 
