@@ -43,6 +43,7 @@ class CTASessionState:
     generation_mode: GenerationMode
     subjects: list[SubjectPlan]
     status: SessionStatus = "ACTIVE"
+    random_seed: int = 7
     subject_index: int = 0
     topic_index: int = 0
     turn_count: int = 0
@@ -94,6 +95,8 @@ class CTATurnRecord:
     backchannel_type: str | None
     generation_mode: GenerationMode
     fallback_used: bool
+    decision_reason: str
+    processing_latency_ms: int
     subject_name: str
     topic_name: str
     keywords: list[str] = field(default_factory=list)
@@ -117,6 +120,20 @@ class GenerationTrace:
 
 
 @dataclass(frozen=True)
+class KnowledgeCandidate:
+    """Structured knowledge candidate extracted from interview turns."""
+
+    session_id: str
+    turn_index: int
+    cue: str
+    decision: str
+    action: str
+    difficulty: str
+    exception: str
+    confidence: float
+
+
+@dataclass(frozen=True)
 class CTAResponse:
     """API response for session start / user turn handling."""
 
@@ -129,4 +146,3 @@ class CTAResponse:
     status: SessionStatus
     subject_name: str
     topic_name: str
-

@@ -74,7 +74,8 @@ class TemplateRepository:
     """Dictionary-backed renderer with deterministic randomness."""
 
     def __init__(self, seed: int | None = 7) -> None:
-        self._rng = random.Random(seed)
+        self._seed = 7 if seed is None else int(seed)
+        self._rng = random.Random(self._seed)
 
     def render_question(
         self,
@@ -126,3 +127,6 @@ class TemplateRepository:
     def template_catalog(self) -> Mapping[str, list[str]]:
         return QUESTION_TEMPLATES
 
+    @property
+    def seed(self) -> int:
+        return self._seed

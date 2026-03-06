@@ -103,3 +103,13 @@ def test_finish_intent_closes_session() -> None:
     assert response.question_type == "STD11"
     assert response.status == "FINISHED"
 
+
+def test_user_question_selects_std5_when_not_topic_limited() -> None:
+    engine = CTAInterviewEngine(topic_turn_limit=3)
+    session = engine.start_session(subjects=build_subjects(), generation_mode="TEMPLATE_RANDOM")
+    _ = engine.handle_user_input(session.session_id, "状況を確認しました。")
+
+    response = engine.handle_user_input(session.session_id, "この判断でよかったでしょうか？")
+
+    assert response.question_type == "STD5"
+    assert response.status == "ACTIVE"

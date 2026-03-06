@@ -7,6 +7,7 @@ import time
 import uuid
 
 from src.cta.features import AnswerFeatureExtractor
+from src.cta.knowledge import extract_knowledge_candidates
 from src.cta.llm import LLMNaturalizer
 from src.cta.models import (
     AnswerFeatures,
@@ -24,6 +25,7 @@ from src.cta.templates import TemplateRepository
 @dataclass(frozen=True)
 class _Decision:
     question_type: str
+    reason: str
     advance: str | None = None  # "TOPIC" | "SUBJECT"
     finish: bool = False
 
@@ -38,12 +40,15 @@ class CTAInterviewEngine:
         templates: TemplateRepository | None = None,
         llm_naturalizer: LLMNaturalizer | None = None,
         topic_turn_limit: int = 2,
+        template_seed: int = 7,
     ) -> None:
         self.store = store or InMemoryCTAStore()
         self.feature_extractor = feature_extractor or AnswerFeatureExtractor()
-        self.templates = templates or TemplateRepository()
+        self.templates = templates or TemplateRepository(seed=template_seed)
         self.llm_naturalizer = llm_naturalizer or LLMNaturalizer()
         self.topic_turn_limit = topic_turn_limit
+        self.template_seed = self.templates.seed
+        self._session_templates: dict[str, TemplateRepository] = {}
 
     def start_session(
         self,
@@ -61,11 +66,15 @@ class CTAInterviewEngine:
         normalized_subjects = [SubjectPlan(plan.name, list(plan.topics)) for plan in subject_plan]
         sid = session_id or uuid.uuid4().hex
 
+        session_templates = TemplateRepository(seed=self.template_seed)
+        self._session_templates[sid] = session_templates
+
         session = CTASessionState(
             session_id=sid,
             user_id=user_id,
             generation_mode=generation_mode,
             subjects=normalized_subjects,
+            random_seed=self.template_seed,
         )
         self.store.create_session(session)
 
@@ -82,6 +91,8 @@ class CTAInterviewEngine:
             ),
             question_type="STD1",
             backchannel_type=None,
+            decision_reason="session-start",
+            session_templates=session_templates,
         )
         session.turn_count += 1
         session.last_question_type = "STD1"
@@ -97,7 +108,12 @@ class CTAInterviewEngine:
         session = self.store.get_session(session_id)
         if session.status == "FINISHED":
             raise ValueError("session is already finished")
+        session_templates = self._session_templates.get(session_id)
+        if session_templates is None:
+            session_templates = TemplateRepository(seed=session.random_seed)
+            self._session_templates[session_id] = session_templates
 
+        turn_started_at = time.perf_counter()
         cleaned = (user_text or "").strip()
         features = self.feature_extractor.extract(cleaned)
         if cleaned:
@@ -112,7 +128,7 @@ class CTAInterviewEngine:
             session.status = "FINISHED"
             session.topic_turn_count = 0
 
-        backchannel_type = self.templates.select_backchannel(
+        backchannel_type = session_templates.select_backchannel(
             turn_count=session.turn_count,
             question_type=decision.question_type,
         )
@@ -122,9 +138,14 @@ class CTAInterviewEngine:
             features=features,
             question_type=decision.question_type,
             backchannel_type=backchannel_type,
+            decision_reason=decision.reason,
+            session_templates=session_templates,
+            turn_started_at=turn_started_at,
         )
         session.turn_count += 1
         session.last_question_type = decision.question_type
+        if session.status == "FINISHED":
+            self._finalize_session(session.session_id)
         return response
 
     def _decide_next(
@@ -134,35 +155,63 @@ class CTAInterviewEngine:
         features: AnswerFeatures,
     ) -> _Decision:
         if not user_text:
-            return _Decision(question_type="STD4")
+            return _Decision(question_type="STD4", reason="empty-answer")
 
         if self._is_finish_intent(user_text):
-            return _Decision(question_type="STD11", finish=True)
+            return _Decision(
+                question_type="STD11",
+                reason="finish-intent",
+                finish=True,
+            )
 
         if features.has_negative:
             if session.has_next_topic():
-                return _Decision(question_type="STD7", advance="TOPIC")
+                return _Decision(
+                    question_type="STD7",
+                    reason="negative-answer-advance-topic",
+                    advance="TOPIC",
+                )
             if session.has_next_subject():
-                return _Decision(question_type="STD3", advance="SUBJECT")
-            return _Decision(question_type="STD11", finish=True)
+                return _Decision(
+                    question_type="STD3",
+                    reason="negative-answer-advance-subject",
+                    advance="SUBJECT",
+                )
+            return _Decision(
+                question_type="STD11",
+                reason="negative-answer-no-remaining-scope",
+                finish=True,
+            )
 
         if session.topic_turn_count >= self.topic_turn_limit:
             if session.has_next_topic():
-                return _Decision(question_type="STD7", advance="TOPIC")
+                return _Decision(
+                    question_type="STD7",
+                    reason="topic-turn-limit-advance-topic",
+                    advance="TOPIC",
+                )
             if session.has_next_subject():
-                return _Decision(question_type="STD3", advance="SUBJECT")
-            return _Decision(question_type="STD11", finish=True)
+                return _Decision(
+                    question_type="STD3",
+                    reason="topic-turn-limit-advance-subject",
+                    advance="SUBJECT",
+                )
+            return _Decision(
+                question_type="STD11",
+                reason="topic-turn-limit-finish",
+                finish=True,
+            )
 
         if features.has_question:
-            return _Decision(question_type="STD5")
+            return _Decision(question_type="STD5", reason="user-asked-question")
 
         if features.keywords and session.last_question_type in {"CDM1", "CDM2"}:
-            return _Decision(question_type="CDM3")
+            return _Decision(question_type="CDM3", reason="keywords-after-cdm")
         if features.keywords and features.clause_count >= 2:
-            return _Decision(question_type="CDM2")
+            return _Decision(question_type="CDM2", reason="keywords-and-rich-clauses")
         if features.keywords:
-            return _Decision(question_type="CDM1")
-        return _Decision(question_type="STD4")
+            return _Decision(question_type="CDM1", reason="keywords-detected")
+        return _Decision(question_type="STD4", reason="fallback-clarify")
 
     def _generate_response(
         self,
@@ -171,18 +220,21 @@ class CTAInterviewEngine:
         features: AnswerFeatures,
         question_type: str,
         backchannel_type: str | None,
+        decision_reason: str,
+        session_templates: TemplateRepository,
+        turn_started_at: float | None = None,
     ) -> CTAResponse:
         keyword = features.keywords[0] if features.keywords else session.current_topic_name
-        probe = self.templates.get_cdm_probe(features.cognitive_action_label)
-        question_text = self.templates.render_question(
+        probe = session_templates.get_cdm_probe(features.cognitive_action_label)
+        question_text = session_templates.render_question(
             question_type=question_type,
             subject=session.current_subject_name,
             topic=session.current_topic_name,
             keyword=keyword,
             probe=probe,
         )
-        backchannel_text = self.templates.render_backchannel(backchannel_type)
-        template_response = self.templates.compose_response(question_text, backchannel_text)
+        backchannel_text = session_templates.render_backchannel(backchannel_type)
+        template_response = session_templates.compose_response(question_text, backchannel_text)
 
         assistant_text = template_response
         fallback_used = False
@@ -213,6 +265,10 @@ class CTAInterviewEngine:
                 ),
             )
 
+        processing_latency_ms = 0
+        if turn_started_at is not None:
+            processing_latency_ms = int((time.perf_counter() - turn_started_at) * 1000)
+
         self.store.save_turn(
             session.session_id,
             CTATurnRecord(
@@ -223,6 +279,8 @@ class CTAInterviewEngine:
                 backchannel_type=backchannel_type,
                 generation_mode=session.generation_mode,
                 fallback_used=fallback_used,
+                decision_reason=decision_reason,
+                processing_latency_ms=processing_latency_ms,
                 subject_name=session.current_subject_name,
                 topic_name=session.current_topic_name,
                 keywords=features.keywords,
@@ -249,3 +307,10 @@ class CTAInterviewEngine:
         finish_markers = ("終了", "終わり", "以上", "これで大丈夫")
         return any(marker in user_text for marker in finish_markers)
 
+    def _finalize_session(self, session_id: str) -> None:
+        existing = self.store.list_knowledge_candidates(session_id)
+        if existing:
+            return
+        turns = self.store.list_turns(session_id)
+        candidates = extract_knowledge_candidates(session_id, turns)
+        self.store.save_knowledge_candidates(session_id, candidates)
