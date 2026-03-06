@@ -328,6 +328,7 @@
               <li>質問対象（topic）リスト</li>
               <li>質問フレーズ辞書（22タイプ想定）</li>
               <li>相槌フレーズ辞書（9タイプ想定）</li>
+              <li>生成方式設定（TEMPLATE_RANDOM / HYBRID_LLM）</li>
               <li>CDMプローブ質問群</li>
               <li>KA用過去回答・RQ用語句リスト</li>
             </ul>
@@ -360,6 +361,9 @@
 
       <section class="section" id="sec6">
         <h2>6. 機能要件</h2>
+        <p class="small" style="margin-bottom:10px;">
+          生成方式方針: Phase 1 は辞書ベースのランダム選択（品質安定・検証容易）を採用し、Phase 2 でLLM自然化を段階導入する。
+        </p>
         <table>
           <thead>
             <tr>
@@ -420,9 +424,9 @@
             </tr>
             <tr>
               <td>FR-09</td>
-              <td>応答生成: 相槌 + 質問文の複文を生成できること</td>
+              <td>応答生成: 相槌 + 質問文の複文を生成できること（Phase 1: テンプレート、Phase 2: LLM自然化）</td>
               <td>Must</td>
-              <td>質問タイプに対応するテンプレート/生成結果が返る</td>
+              <td>Phase 1で辞書文面を返せること。Phase 2で文脈変数を保持した自然化文面を返せること</td>
             </tr>
             <tr>
               <td>FR-10</td>
@@ -441,6 +445,24 @@
               <td>例外処理: 無回答・短回答・逸脱回答に対するフォールバックがあること</td>
               <td>Must</td>
               <td>再質問、確認質問、終了確認のいずれかに遷移できる</td>
+            </tr>
+            <tr>
+              <td>FR-13</td>
+              <td>生成モード切替: テンプレート生成とLLM生成を機能フラグで切替できること</td>
+              <td>Must</td>
+              <td>セッション単位またはユーザー群単位で生成モードを切替できる</td>
+            </tr>
+            <tr>
+              <td>FR-14</td>
+              <td>LLMフォールバック: LLMエラー/タイムアウト時にテンプレート生成へ自動切替できること</td>
+              <td>Must</td>
+              <td>失敗時も対話継続でき、fallback発生をログに記録する</td>
+            </tr>
+            <tr>
+              <td>FR-15</td>
+              <td>LLMガードレール: 選択済み質問タイプの意図を逸脱しないよう出力制約を適用できること</td>
+              <td>Should</td>
+              <td>禁止表現・長文化・話題逸脱を検知した場合はテンプレート文面へ差し戻す</td>
             </tr>
           </tbody>
         </table>
@@ -464,7 +486,7 @@
             </tr>
             <tr>
               <td>interview_turn</td>
-              <td>turn_id, session_id, topic, question_type, backchannel_type, user_text, agent_text</td>
+              <td>turn_id, session_id, topic, question_type, backchannel_type, generation_mode, user_text, agent_text</td>
               <td>対話履歴と遷移結果の記録</td>
             </tr>
             <tr>
@@ -491,6 +513,11 @@
               <td>past_record_index</td>
               <td>topic_id, keyword, answer_excerpt, created_at</td>
               <td>KA/RQの候補提示材料</td>
+            </tr>
+            <tr>
+              <td>generation_trace</td>
+              <td>turn_id, model_name, prompt_version, latency_ms, fallback_used</td>
+              <td>LLM導入時の品質・監査・コスト分析</td>
             </tr>
           </tbody>
         </table>
@@ -553,7 +580,7 @@
               <td>IF-02</td>
               <td>生成AI API</td>
               <td>質問文/要約文の自然化</td>
-              <td>固定テンプレート出力モードを用意</td>
+              <td>Phase 2以降で有効化。障害時はテンプレート生成へ自動フォールバック</td>
             </tr>
             <tr>
               <td>IF-03</td>
@@ -606,6 +633,21 @@
               <td>ユーザビリティ</td>
               <td>質問文は短文を基本とし、専門用語には補足を付ける</td>
             </tr>
+            <tr>
+              <td>NFR-07</td>
+              <td>コスト</td>
+              <td>Phase 2では1セッション当たりのLLM利用量上限を設定し、超過時はテンプレートモードへ切替える</td>
+            </tr>
+            <tr>
+              <td>NFR-08</td>
+              <td>再現性</td>
+              <td>Phase 1は同一条件で再現可能な選択ログ（乱数seed含む）を保持し、検証可能にする</td>
+            </tr>
+            <tr>
+              <td>NFR-09</td>
+              <td>品質管理</td>
+              <td>Phase 2はA/B比較で、自然さ指標がPhase 1を下回る場合に即時ロールバック可能とする</td>
+            </tr>
           </tbody>
         </table>
       </section>
@@ -614,7 +656,8 @@
         <h2>11. 制約・前提条件</h2>
         <ul>
           <li>領域依存知識は subject/topic リストに閉じ込め、遷移ルール本体は共通化する。</li>
-          <li>外部APIの応答品質は一定でないため、固定テンプレート出力モードを保持する。</li>
+          <li>初期リリースは TEMPLATE_RANDOM を既定値とし、LLMは検証環境から段階導入する。</li>
+          <li>外部APIの応答品質は一定でないため、固定テンプレート出力モードを恒久的に保持する。</li>
           <li>実運用では倫理審査・同意取得・ログ保管期間のルールを別紙で定義する。</li>
           <li>本書の数値目標は初期値であり、PoC結果で改定する。</li>
         </ul>
@@ -632,7 +675,7 @@
           <tbody>
             <tr>
               <td>機能完備性</td>
-              <td>Must要件（FR-01,02,03,05,08,09,10,12）を全て満たす</td>
+              <td>Must要件（FR-01,02,03,05,08,09,10,12,13,14）を全て満たす</td>
             </tr>
             <tr>
               <td>遷移妥当性</td>
@@ -650,6 +693,10 @@
               <td>運用性</td>
               <td>管理者が画面操作のみでsubject/topicを追加し、反映できる</td>
             </tr>
+            <tr>
+              <td>段階導入妥当性</td>
+              <td>Phase 1完了後にA/Bテスト条件を満たした場合のみPhase 2を本番有効化する</td>
+            </tr>
           </tbody>
         </table>
       </section>
@@ -658,6 +705,7 @@
         <h2>13. 未決事項・検討課題</h2>
         <ul>
           <li>回答分類（タスク達成度）の自動判定基準をルールベースで行うか、モデル評価に寄せるか。</li>
+          <li>Phase 2移行判定に用いるKPI閾値（自然さ、抽出量、コスト）の確定。</li>
           <li>KAで提示する過去回答の匿名化・要約粒度の運用方針。</li>
           <li>RQ候補語句の生成頻度と品質管理手順。</li>
           <li>医療・防災等の高リスク領域でのガードレール設計。</li>
