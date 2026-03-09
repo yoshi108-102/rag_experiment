@@ -387,12 +387,12 @@ def build_broad_gather_question(user_input: str) -> str:
     compact = normalize_text_for_slots(user_input)
 
     if matches_any(compact, VISIBILITY_PATTERNS):
-        return "どんな感じで見づらかったのか、もう少し聞かせて。"
+        return "見えにくさが気になっていたんですね。どんな感じで見づらかったのか、もう少し聞かせて。"
     if matches_any(compact, FATIGUE_PATTERNS):
-        return "どんなやり方のときに一番きつかった？"
+        return "きつさが出ていたんですね。どんなやり方のときに一番きつかったですか？"
     if matches_any(compact, CONFUSION_PATTERNS):
-        return "どこから迷い始めた感じだった？"
-    return "どんな感じで困ったのか、もう少し聞かせて。"
+        return "そこで迷いが出たんですね。どこから迷い始めた感じでしたか？"
+    return "困りごとが残っていたんですね。どんな感じで困ったのか、もう少し聞かせて。"
 
 
 def should_force_broad_gather(
