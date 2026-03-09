@@ -10,7 +10,7 @@ class GateDecision(BaseModel):
     Attributes:
         route: 入力の遷移先。深掘り・明確化・保留・終了のいずれか。
         reason: その遷移を選んだ理由。
-        first_question: 次にユーザーへ返す最初の問いかけ文。
+        first_question: 次にユーザーへ返す最初の短い応答文。必要なら1つだけ質問を含めてよい。
     """
 
     route: Literal["DEEPEN", "PARK", "CLARIFY", "FINISH"] = Field(
@@ -20,7 +20,7 @@ class GateDecision(BaseModel):
         description="A concise reason (< 10 words) for the chosen route."
     )
     first_question: str = Field(
-        description="The follow-up probing question to ask the user."
+        description="The next short response to the user, optionally including one open follow-up question."
     )
 
     model_config = {

@@ -17,6 +17,9 @@ def test_load_gate_prompt():
     assert "DEEPEN" in prompt
     assert "CLARIFY" in prompt
     assert "PARK" in prompt
+    assert "OARS" in prompt
+    assert "自己決定感" in prompt
+    assert "質問を入れる場合は必ず1つだけ" in prompt
 
 @patch('src.agents.gate.ChatOpenAI')
 @patch('src.agents.gate.translate_reasoning_to_japanese')
@@ -263,7 +266,10 @@ def test_apply_decision_overrides_switches_over_specific_binary_question_to_broa
 
     assert overridden.route == "CLARIFY"
     assert overridden.reason == "Broad gather before narrowing"
-    assert overridden.first_question == "どんな感じで見づらかったのか、もう少し聞かせて。"
+    assert (
+        overridden.first_question
+        == "見えにくさが気になっていたんですね。どんな感じで見づらかったのか、もう少し聞かせて。"
+    )
 
 
 def test_apply_decision_overrides_keeps_binary_question_when_user_already_mentioned_options():
