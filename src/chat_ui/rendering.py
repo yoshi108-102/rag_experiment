@@ -71,6 +71,9 @@ def render_route_debug_panel(debug_info: dict[str, Any] | None) -> None:
     with st.expander("AI Routing Info (Debug)", expanded=False):
         st.write(f"**Route:** {debug_info.get('route')}")
         st.write(f"**Reason:** {debug_info.get('reason')}")
+        refinement = debug_info.get("response_refinement") or {}
+        if refinement:
+            st.write("**Response Refinement:**", refinement)
         if debug_info.get("clarify_json"):
             st.write("**CLARIFY JSON:**", debug_info["clarify_json"])
         if debug_info.get("cta_state"):

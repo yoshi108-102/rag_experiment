@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Appendix A: Reflective Dialogue Prompt Literature Survey</title>
+  <style>
+    :root {
+      --bg: #f4f6f3;
+      --paper: #ffffff;
+      --ink: #1f2933;
+      --muted: #52606d;
+      --line: #d9e2ec;
+      --accent: #1f6f5f;
+      --accent-soft: #e4f3ef;
+      --warn: #8d5a12;
+      --warn-soft: #fff3df;
+      --risk: #9b1c1c;
+      --risk-soft: #fde8e8;
+      --shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+      --radius: 16px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 10% 0%, #dff7ee 0%, transparent 28%),
+        radial-gradient(circle at 100% 0%, #edf7ff 0%, transparent 24%),
+        var(--bg);
+      font-family: "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
+      line-height: 1.7;
+    }
+
+    a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    .wrap {
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 28px 20px 64px;
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 20px;
+    }
+
+    .toc {
+      position: sticky;
+      top: 16px;
+      align-self: start;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 18px;
+    }
+
+    .toc h2 {
+      margin: 0 0 12px;
+      font-size: 15px;
+    }
+
+    .toc ol {
+      margin: 0;
+      padding-left: 18px;
+      display: grid;
+      gap: 6px;
+      font-size: 13px;
+    }
+
+    .doc {
+      display: grid;
+      gap: 16px;
+    }
+
+    .hero,
+    .section {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 22px;
+    }
+
+    .badge {
+      display: inline-block;
+      margin-bottom: 10px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .04em;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 31px;
+      line-height: 1.25;
+    }
+
+    h2 {
+      margin: 0 0 14px;
+      padding-left: 10px;
+      border-left: 5px solid var(--accent);
+      font-size: 22px;
+    }
+
+    h3 {
+      margin: 0 0 8px;
+      font-size: 16px;
+    }
+
+    p {
+      margin: 0;
+    }
+
+    .lead {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .grid.cols-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .grid.cols-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px;
+      background: #fff;
+    }
+
+    .card p + p,
+    .card ul {
+      margin-top: 8px;
+    }
+
+    .label {
+      display: inline-block;
+      margin-right: 6px;
+      margin-bottom: 8px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .label.high {
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+
+    .label.medium {
+      background: var(--warn-soft);
+      color: var(--warn);
+    }
+
+    .label.low {
+      background: var(--risk-soft);
+      color: var(--risk);
+    }
+
+    ul {
+      margin: 8px 0 0;
+      padding-left: 18px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+      font-size: 13px;
+    }
+
+    th,
+    td {
+      border: 1px solid var(--line);
+      padding: 10px 11px;
+      vertical-align: top;
+      text-align: left;
+    }
+
+    th {
+      background: #f8faf9;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .small {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .note {
+      border-left: 4px solid var(--warn);
+      background: #fffdf7;
+      padding: 12px 14px;
+      border-radius: 10px;
+      color: #5f4b19;
+      font-size: 13px;
+    }
+
+    .footer {
+      color: var(--muted);
+      font-size: 12px;
+      text-align: right;
+      padding-top: 4px;
+    }
+
+    @media (max-width: 1080px) {
+      .wrap {
+        grid-template-columns: 1fr;
+      }
+
+      .toc {
+        position: static;
+      }
+    }
+
+    @media (max-width: 760px) {
+      h1 { font-size: 25px; }
+      h2 { font-size: 18px; }
+      .grid.cols-2,
+      .grid.cols-3 {
+        grid-template-columns: 1fr;
+      }
+      .hero,
+      .section {
+        padding: 16px;
+      }
+      table {
+        display: block;
+        overflow-x: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <aside class="toc" aria-label="目次">
+      <h2>Appendix A</h2>
+      <ol>
+        <li><a href="#scope">サーベイ範囲</a></li>
+        <li><a href="#summary">要点</a></li>
+        <li><a href="#matrix">文献マトリクス</a></li>
+        <li><a href="#implications">現行promptへの示唆</a></li>
+        <li><a href="#limits">限界</a></li>
+        <li><a href="#refs">参考文献リンク</a></li>
+      </ol>
+    </aside>
+
+    <main class="doc">
+      <section class="hero">
+        <div class="badge">APPENDIX A / LITERATURE SURVEY</div>
+        <h1>Reflective Dialogue Prompt 関連研究サーベイ</h1>
+        <p class="lead">
+          対象: 学習者の振り返り支援に向けた prompt 設計。特に OARS、reflective listening、
+          autonomy support、psychological safety、trauma-informed / safety-aware、
+          および LLM / chatbot 実装の知見を対象に整理。<br>
+          検索日: 2026-03-09。一次ソースを優先し、PubMed / PMC / DOI 公開ページを中心に手動選定。
+        </p>
+      </section>
+
+      <section class="section" id="scope">
+        <h2>1. サーベイ範囲</h2>
+        <div class="grid cols-2">
+          <div class="card">
+            <h3>選定基準</h3>
+            <ul>
+              <li>対話設計の原理に直接つながる研究を優先</li>
+              <li>レビュー、メタ分析、ランダム化比較、実装研究を混在させて確認</li>
+              <li>教育現場、医療対話、行動変容支援、debriefing を含めて横断的に選定</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>今回の問い</h3>
+            <ul>
+              <li>受容と反射を prompt に明示する根拠はあるか</li>
+              <li>質問数を絞り、自己決定感を守る方針に根拠はあるか</li>
+              <li>safety-aware / trauma-informed の制約はどこまで強く書けるか</li>
+              <li>LLM に reflective responses を任せるとき何がボトルネックか</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="summary">
+        <h2>2. 要点</h2>
+        <div class="grid cols-3">
+          <div class="card">
+            <span class="label high">比較的強い支持</span>
+            <p>MI 系の研究では、効果の中核は「共感的な関係性」と「本人の change talk を引き出す技術」に置かれている。</p>
+            <p class="small">Inference: prompt では解決策提示より先に、受容と反射を優先する設計が妥当。</p>
+          </div>
+          <div class="card">
+            <span class="label high">比較的強い支持</span>
+            <p>教育領域のメタ分析では、teacher autonomy support は学生の need satisfaction と self-determined motivation と強く結び付く。</p>
+            <p class="small">Inference: 「話す範囲を相手が選べる」設計は保持すべき。</p>
+          </div>
+          <div class="card">
+            <span class="label medium">中程度の支持</span>
+            <p>psychological safety 研究は、学習志向、支援、包摂性、階層の弱化が発話しやすさを支えると示す。</p>
+            <p class="small">Inference: 詰問調や能力不足を示唆する文言は避けるべき。</p>
+          </div>
+          <div class="card">
+            <span class="label medium">運用上かなり有用</span>
+            <p>PEARLS は、self-assessment と focused discussion を土台にした debriefing の実装枠組みを提供する。</p>
+            <p class="small">Inference: 質問は1つずつ、場面を限定しすぎず、自己評価を促す順番が合う。</p>
+          </div>
+          <div class="card">
+            <span class="label low">根拠はあるが比較研究は薄い</span>
+            <p>trauma-informed teaching では再トラウマ化回避の必要性は強く示される一方、どの技法が最も有効かの比較証拠はまだ薄い。</p>
+            <p class="small">Inference: safety ルールは強く書きつつ、細かな戦術は断定しすぎない方がよい。</p>
+          </div>
+          <div class="card">
+            <span class="label medium">実装上の重要な注意</span>
+            <p>LLM に reflective responses を作らせること自体は有望だが、品質チェッカーなしでは不適切な反射が混ざる。</p>
+            <p class="small">Inference: prompt だけでなく guard / validator が必要。</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="matrix">
+        <h2>3. 文献マトリクス</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>系統</th>
+              <th>文献</th>
+              <th>研究タイプ</th>
+              <th>この文献が支えること</th>
+              <th>prompt への示唆</th>
+              <th>転用の確からしさ<br><span class="small">Inference</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>MIの理論</td>
+              <td>
+                Miller &amp; Rose (2009)<br>
+                <a href="https://pubmed.ncbi.nlm.nih.gov/19739882/">PubMed</a> /
+                <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC2759607/">PMC</a>
+              </td>
+              <td>理論レビュー</td>
+              <td>MI の有効成分を「relational component focused on empathy」と「change talk の喚起」に整理している。</td>
+              <td>受容と反射を前段に置き、ユーザー自身の言語化を促す質問に寄せる。</td>
+              <td><span class="label high">High</span></td>
+            </tr>
+            <tr>
+              <td>MIの効果</td>
+              <td>
+                Rubak et al. (2005)<br>
+                <a href="https://pubmed.ncbi.nlm.nih.gov/15826439/">PubMed</a> /
+                <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC1463134/">PMC</a>
+              </td>
+              <td>系統的レビュー + メタ分析</td>
+              <td>72件の RCT を統合し、MI はおよそ 4 件中 3 件で臨床的効果を示し、15分程度の短時間介入でも一定の効果があると報告。</td>
+              <td>短い1ターンでも、受容的な働きかけ自体に意味があると見なせる。</td>
+              <td><span class="label high">High</span></td>
+            </tr>
+            <tr>
+              <td>自己決定感</td>
+              <td>
+                Bureau et al. (2022)<br>
+                <a href="https://pubmed.ncbi.nlm.nih.gov/35330866/">PubMed</a> /
+                <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC8935530/">PMC</a>
+              </td>
+              <td>メタ分析</td>
+              <td>144研究、79,000人超を対象に、teacher autonomy support は学生の need satisfaction と self-determined motivation を強く予測すると報告。</td>
+              <td>「どこまで話すかを相手が選べる」「無理に深掘りしない」を prompt の中心に置く。</td>
+              <td><span class="label high">High</span></td>
+            </tr>
+            <tr>
+              <td>心理的安全性</td>
+              <td>
+                O'Donovan &amp; McAuliffe (2020)<br>
+                <a href="https://pubmed.ncbi.nlm.nih.gov/32232323/">PubMed</a> /
+                <a href="https://doi.org/10.1093/intqhc/mzaa025">DOI</a>
+              </td>
+              <td>系統的レビュー</td>
+              <td>36論文から 13 の enabler を整理し、learning orientation、support、hierarchy / inclusiveness などを心理的安全性の条件として抽出。</td>
+              <td>評価・詰問・断定を抑え、「間違っていても話せる」空気を文面で作る。</td>
+              <td><span class="label high">High</span></td>
+            </tr>
+            <tr>
+              <td>振り返り支援</td>
+              <td>
+                Eppich &amp; Cheng (2015)<br>
+                <a href="https://pubmed.ncbi.nlm.nih.gov/25710312/">PubMed</a> /
+                <a href="https://doi.org/10.1097/SIH.0000000000000072">DOI</a>
+              </td>
+              <td>実装フレームワーク</td>
+              <td>PEARLS は debriefing を learner self-assessment、focused discussion、directive feedback / teaching に分けて構造化している。</td>
+              <td>現行 prompt は self-assessment と focused discussion を主軸にし、teaching は原則オフでよい。</td>
+              <td><span class="label medium">Medium</span></td>
+            </tr>
+            <tr>
+              <td>trauma-informed</td>
+              <td>
+                Gladden et al. (2023)<br>
+                <a href="https://pubmed.ncbi.nlm.nih.gov/36331141/">PubMed</a> /
+                <a href="https://doi.org/10.1177/15248380221129575">DOI</a>
+              </td>
+              <td>系統的レビュー</td>
+              <td>27論文をレビューし、self-care や journaling などの実践が提案される一方、個別手法の有効性比較は乏しいと指摘。</td>
+              <td>安全配慮の原則は強く書くが、特定技法を万能視しない。過剰な深掘り回避を優先する。</td>
+              <td><span class="label medium">Medium</span></td>
+            </tr>
+            <tr>
+              <td>trauma-informed</td>
+              <td>
+                Henshaw (2022)<br>
+                <a href="https://pubmed.ncbi.nlm.nih.gov/36285937/">PubMed</a> /
+                <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC9598185/">PMC</a>
+              </td>
+              <td>レビュー / 実践提案</td>
+              <td>higher education で culturally responsive な trauma-informed approaches を適用するための概念整理を行っている。</td>
+              <td>「安全」と「包摂性」を分けずに扱い、相手の語彙保持や決めつけ回避を明記する。</td>
+              <td><span class="label medium">Medium</span></td>
+            </tr>
+            <tr>
+              <td>chatbot実装</td>
+              <td>
+                Almusharraf et al. (2020)<br>
+                <a href="https://pubmed.ncbi.nlm.nih.gov/33141095/">PubMed</a> /
+                <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC7671850/">PMC</a>
+              </td>
+              <td>反復設計研究</td>
+              <td>反射文と summary statement を含む MI chatbot を反復改良し、分類 F1 を 0.63 から 0.82 に改善した。</td>
+              <td>会話ログから改善する前提は妥当。prompt だけでなく失敗例の収集が重要。</td>
+              <td><span class="label medium">Medium</span></td>
+            </tr>
+            <tr>
+              <td>chatbot実装</td>
+              <td>
+                Brown et al. (2023)<br>
+                <a href="https://pubmed.ncbi.nlm.nih.gov/37847539/">PubMed</a> /
+                <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC10618902/">PMC</a>
+              </td>
+              <td>反復実装研究</td>
+              <td>generative reflections を入れたバージョンは、question-only バージョンより perceived empathy が高く、extended version では readiness と importance も上がった。</td>
+              <td>反射的要約は飾りではなく、質問だけより価値がある可能性が高い。</td>
+              <td><span class="label medium">Medium</span></td>
+            </tr>
+            <tr>
+              <td>LLM reflection</td>
+              <td>
+                Kumar et al. (2024)<br>
+                <a href="https://pubmed.ncbi.nlm.nih.gov/39324852/">PubMed</a> /
+                <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC11448290/">PMC</a>
+              </td>
+              <td>アルゴリズム開発 + 検証</td>
+              <td>GPT-4 に prompt engineering で backward-looking complex reflections を生成させ、150件中 132件が acceptable。残り 12% は不適切で checker が必要と結論。</td>
+              <td>現行 system prompt の改善だけでなく、multi-question、過解釈、押しつけを弾く後段 guard が必要。</td>
+              <td><span class="label high">High</span></td>
+            </tr>
+            <tr>
+              <td>LLM / chatbotの限界</td>
+              <td>
+                He et al. (2022)<br>
+                <a href="https://pubmed.ncbi.nlm.nih.gov/35413887/">PubMed</a> /
+                <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC9003955/">PMC</a>
+              </td>
+              <td>ランダム化比較試験</td>
+              <td>MI-style chatbot は neutral chatbot に対して engagement / alliance / empathy で有意差が出なかった一方、会話自体で motivation は上がり、communication competence は主要指標と正に関連。</td>
+              <td>MI 風の表面文体だけでは足りず、応答の妥当性と一貫性が重要。prompt は style と quality control をセットで考える。</td>
+              <td><span class="label medium">Medium</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="section" id="implications">
+        <h2>4. 現行promptへの示唆</h2>
+        <div class="grid cols-2">
+          <div class="card">
+            <h3>残すべき方針</h3>
+            <ul>
+              <li>受容してから進む</li>
+              <li>質問は1つだけにする</li>
+              <li>「なぜ」より「いつ / どこで / 何が見えていたか」を先に聞く</li>
+              <li>本人の表現を保持して返す</li>
+              <li>終了意図が見えたら `FINISH` を優先する</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>追加で必要な運用</h3>
+            <ul>
+              <li>過解釈、原因断定、複数質問を弾く validator</li>
+              <li>frustration / closure の rule-based override</li>
+              <li>good / bad response のログ収集と継続的な微修正</li>
+              <li>将来的には reflection quality の rubric を導入</li>
+            </ul>
+          </div>
+        </div>
+        <div class="note">
+          ここでの「転用の確からしさ」は、このリポジトリの用途に引き付けた実務上の推定です。文献そのものが
+          直接に「学習者向け reflective prompt」を比較したわけではない点は残ります。
+        </div>
+      </section>
+
+      <section class="section" id="limits">
+        <h2>5. 限界</h2>
+        <ul>
+          <li>MI の主要エビデンスは医療・行動変容文脈で、学習振り返りそのものへの直接転用ではない。</li>
+          <li>trauma-informed は必要性の論拠は強いが、具体的な会話マイクロスキルの比較研究はまだ少ない。</li>
+          <li>chatbot 研究の多くは smoking cessation に偏っており、教育現場で同じ効果量が出るとは限らない。</li>
+          <li>LLM reflection 研究は有望だが、品質検証なしで運用できる水準とはまだ言いにくい。</li>
+        </ul>
+      </section>
+
+      <section class="section" id="refs">
+        <h2>6. 参考文献リンク</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>文献</th>
+              <th>リンク</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Miller WR, Rose GS. Toward a theory of motivational interviewing. 2009.</td>
+              <td><a href="https://pubmed.ncbi.nlm.nih.gov/19739882/">PubMed</a> / <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC2759607/">PMC</a></td>
+            </tr>
+            <tr>
+              <td>Rubak S, Sandbaek A, Lauritzen T, Christensen B. Motivational interviewing: a systematic review and meta-analysis. 2005.</td>
+              <td><a href="https://pubmed.ncbi.nlm.nih.gov/15826439/">PubMed</a> / <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC1463134/">PMC</a></td>
+            </tr>
+            <tr>
+              <td>Bureau JS, Howard JL, Chong JXY, Guay F. Pathways to Student Motivation. 2022.</td>
+              <td><a href="https://pubmed.ncbi.nlm.nih.gov/35330866/">PubMed</a> / <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC8935530/">PMC</a></td>
+            </tr>
+            <tr>
+              <td>O'Donovan R, McAuliffe E. A systematic review of factors that enable psychological safety in healthcare teams. 2020.</td>
+              <td><a href="https://pubmed.ncbi.nlm.nih.gov/32232323/">PubMed</a> / <a href="https://doi.org/10.1093/intqhc/mzaa025">DOI</a></td>
+            </tr>
+            <tr>
+              <td>Eppich W, Cheng A. PEARLS. 2015.</td>
+              <td><a href="https://pubmed.ncbi.nlm.nih.gov/25710312/">PubMed</a> / <a href="https://doi.org/10.1097/SIH.0000000000000072">DOI</a></td>
+            </tr>
+            <tr>
+              <td>Gladden J, Weller BE, Hernandez A, Hopkins A. Teaching Trauma Content in Higher Education. 2023.</td>
+              <td><a href="https://pubmed.ncbi.nlm.nih.gov/36331141/">PubMed</a> / <a href="https://doi.org/10.1177/15248380221129575">DOI</a></td>
+            </tr>
+            <tr>
+              <td>Henshaw LA. Building Trauma-Informed Approaches in Higher Education. 2022.</td>
+              <td><a href="https://pubmed.ncbi.nlm.nih.gov/36285937/">PubMed</a> / <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC9598185/">PMC</a></td>
+            </tr>
+            <tr>
+              <td>Almusharraf F, Rose J, Selby P. Engaging Unmotivated Smokers to Move Toward Quitting. 2020.</td>
+              <td><a href="https://pubmed.ncbi.nlm.nih.gov/33141095/">PubMed</a> / <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC7671850/">PMC</a></td>
+            </tr>
+            <tr>
+              <td>Brown A, Kumar AT, Melamed O, et al. A Motivational Interviewing Chatbot With Generative Reflections. 2023.</td>
+              <td><a href="https://pubmed.ncbi.nlm.nih.gov/37847539/">PubMed</a> / <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC10618902/">PMC</a></td>
+            </tr>
+            <tr>
+              <td>Kumar AT, Wang C, Dong A, Rose J. GPT-4 BLCR generation for an MI chatbot. 2024.</td>
+              <td><a href="https://pubmed.ncbi.nlm.nih.gov/39324852/">PubMed</a> / <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC11448290/">PMC</a></td>
+            </tr>
+            <tr>
+              <td>He L, Basar E, Wiers RWW, Antheunis MLA, Krahmer E. Can chatbots help to motivate smoking cessation? 2022.</td>
+              <td><a href="https://pubmed.ncbi.nlm.nih.gov/35413887/">PubMed</a> / <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC9003955/">PMC</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <div class="footer">Document Path: /Users/yoshi/zacitra_ws/sandbox_hiranuma/rag_experiment/docs/appendix-reflective-dialogue-survey.html</div>
+    </main>
+  </div>
+</body>
+</html>

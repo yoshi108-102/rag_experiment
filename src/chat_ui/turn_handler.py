@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from src.agents.gate import analyze_input, build_clarify_completion_json
+from src.agents.response_refiner import refine_route_response
 from src.chat_ui.constants import BOUNDARY_ROUTES, RAG_ELIGIBLE_ROUTES
 from src.chat_ui.cta_state import update_cta_state
 from src.chat_ui.rag_policy import (
@@ -41,7 +42,14 @@ def handle_user_turn(
         list(session_state.llm_context),
         user_images=user_images,
     )
-    response = execute_route(decision)
+    draft_response = execute_route(decision)
+    refinement = refine_route_response(
+        draft_response,
+        route=decision.route,
+        user_input=prompt,
+        chat_context=list(session_state.llm_context),
+    )
+    response = refinement.text
     clarify_json = build_clarify_completion_json(prompt, list(session_state.llm_context))
     cta_state = update_cta_state(session_state, clarify_json, decision.route)
 
@@ -56,6 +64,13 @@ def handle_user_turn(
         "clarify_json": clarify_json,
         "cta_state": cta_state,
         "token_usage": token_usage,
+        "response_refinement": {
+            "enabled": refinement.enabled,
+            "fallback_used": refinement.fallback_used,
+            "model_name": refinement.model_name,
+            "error": refinement.error,
+            "draft_response": refinement.draft_response,
+        },
     }
 
     return TurnResult(

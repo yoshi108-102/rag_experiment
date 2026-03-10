@@ -66,17 +66,18 @@ User Input
 補足: `st.chat_input` は画像添付に対応しており、テキストのみ / 画像のみ / テキスト+画像 の送信が可能です。
 
 1. `analyze_input()` で Gate判定（LLM + ルールベース補正）
-2. `execute_route()` で返答文生成（現状は `first_question` を返す）
-3. RAGポリシーで実行要否を判定
-4. 実行時は知識検索 + 新規性判定 + `pending_reflections.jsonl` への保存
-5. UIに以下を表示
+2. `execute_route()` で返答文生成（素案）
+3. 後段の `response_refiner` が、意図を変えずに受容的な文面へ整形
+4. RAGポリシーで実行要否を判定
+5. 実行時は知識検索 + 新規性判定 + `pending_reflections.jsonl` への保存
+6. UIに以下を表示
    - 応答文
    - Reasoning（任意）
    - RAG検索結果 / 新規性判定（デバッグ）
    - ルーティング情報（デバッグ）
    - コンテキスト使用量（推定）と最新の実測 token usage（サイドバー）
-6. 会話ログを `logs/chat_sessions/*.jsonl` に保存
-7. Gate分類の生トレースを `logs/gate_agent_traces/*.jsonl` に保存（有効時）
+7. 会話ログを `logs/chat_sessions/*.jsonl` に保存
+8. Gate分類の生トレースを `logs/gate_agent_traces/*.jsonl` に保存（有効時）
 
 ## RAG（現在の実装）
 
@@ -100,7 +101,7 @@ User Input
 ├── datasets/                 # 原データ / 抽出結果 / 統合知識 / pending
 ├── logs/                     # チャットセッションログ
 ├── src/
-│   ├── agents/               # Gate判定、Reasoning翻訳
+│   ├── agents/               # Gate判定、Reasoning翻訳、後段応答リファイン
 │   ├── chains/               # LLMチェーン定義
 │   ├── chat_ui/              # Streamlit向けUI/状態/ユースケース
 │   ├── core/                 # 共通モデル、ロギング
@@ -139,6 +140,8 @@ cp .env.example .env
 - `REASONING_TRANSLATION_ENABLED`（任意。`1/true/on/yes` のときのみReasoning翻訳LLMを実行）
 - `REASONING_TRANSLATION_MODEL`（任意。翻訳に使うモデル名。既定 `gpt-4o-mini`）
 - `OVERALL_CONTEXT_MODE`（任意。`auto`/`always`/`off`。既定 `auto`）
+- `RESPONSE_REFINER_ENABLED`（任意。`0/false/off/no` で後段のやわらかさ調整エージェントを無効化）
+- `RESPONSE_REFINER_MODEL`（任意。後段リファインに使うモデル名。既定 `gpt-4o-mini`）
 
 ## 実行方法
 
@@ -233,6 +236,7 @@ uv run python scripts/generate_eval_drafts_from_favorites.py \
 
 - Gate判定は OpenAI Responses API + Structured Outputs を利用
 - `prompts/gate_prompt.md` を読み込み、`prompts/overall.md` は `OVERALL_CONTEXT_MODE` に応じて注入
+- `prompts/response_refiner_prompt.md` で、後段エージェントBの受容的な文面調整方針を定義
 - `FINISH` / `PARK` は会話の区切りとして RAGバッファをクリア（RAG検索は実行しない）
 - Streamlit UIでは RAG / Routing / Reasoning のデバッグ表示が有効
 - Streamlit サイドバーにコンテキストウインドウ使用量（推定 + 最新API実測token usage）を表示

@@ -1,5 +1,6 @@
 import collections
 from src.agents.gate import analyze_input
+from src.agents.response_refiner import refine_route_response
 from src.routing.router import execute_route
 from src.core.chat_logging import ChatSessionLogger
 from src.core.env import initialize_environment
@@ -38,7 +39,14 @@ def main():
             decision, reasoning, token_usage = analyze_input(user_input, list(llm_context))
             
             # Step 2: Execute the routing logic Based on the decision
-            response = execute_route(decision)
+            draft_response = execute_route(decision)
+            refinement = refine_route_response(
+                draft_response,
+                route=decision.route,
+                user_input=user_input,
+                chat_context=list(llm_context),
+            )
+            response = refinement.text
             llm_context.append({"role": "assistant", "content": response})
             chat_logger.log_message(
                 "assistant",
@@ -48,6 +56,13 @@ def main():
                     "reason": decision.reason,
                     "reasoning": reasoning,
                     "token_usage": token_usage,
+                    "response_refinement": {
+                        "enabled": refinement.enabled,
+                        "fallback_used": refinement.fallback_used,
+                        "model_name": refinement.model_name,
+                        "error": refinement.error,
+                        "draft_response": refinement.draft_response,
+                    },
                 },
             )
             
