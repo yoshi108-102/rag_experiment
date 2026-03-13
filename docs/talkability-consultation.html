@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI言語化システム 話しやすさ改善の相談メモ</title>
+  <style>
+    :root {
+      --bg: #f5efe6;
+      --paper: #fffdf8;
+      --paper-strong: #fff8ee;
+      --ink: #22201c;
+      --muted: #6f665d;
+      --line: #dccfbe;
+      --accent: #9d4d2f;
+      --accent-soft: #f6e4da;
+      --accent-strong: #6f2f18;
+      --sub: #215a64;
+      --sub-soft: #dff0f2;
+      --ok: #2d6b4f;
+      --ok-soft: #e3f3ea;
+      --shadow: 0 14px 36px rgba(88, 61, 30, 0.12);
+      --radius-lg: 22px;
+      --radius-md: 16px;
+      --radius-sm: 12px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 12% 0%, rgba(255, 225, 205, 0.95) 0%, transparent 28%),
+        radial-gradient(circle at 100% 12%, rgba(224, 242, 241, 0.9) 0%, transparent 24%),
+        linear-gradient(180deg, #f9f5ef 0%, var(--bg) 100%);
+      font-family: "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
+      line-height: 1.7;
+    }
+
+    a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    .shell {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 28px 20px 72px;
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 20px;
+    }
+
+    .toc {
+      position: sticky;
+      top: 18px;
+      align-self: start;
+      background: rgba(255, 253, 248, 0.9);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(220, 207, 190, 0.9);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      padding: 18px;
+    }
+
+    .toc h2 {
+      margin: 0 0 12px;
+      font-size: 15px;
+      color: var(--accent-strong);
+      letter-spacing: 0.04em;
+    }
+
+    .toc ol {
+      margin: 0;
+      padding-left: 18px;
+      display: grid;
+      gap: 8px;
+      font-size: 13px;
+    }
+
+    .toc p {
+      margin: 0 0 12px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .doc {
+      display: grid;
+      gap: 18px;
+    }
+
+    .hero,
+    .section {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+    }
+
+    .hero {
+      overflow: hidden;
+    }
+
+    .hero-top {
+      padding: 28px 28px 22px;
+      background:
+        linear-gradient(135deg, rgba(246, 228, 218, 0.92), rgba(255, 248, 238, 0.7)),
+        linear-gradient(180deg, #fffaf4, #fff7ec);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: rgba(111, 47, 24, 0.08);
+      color: var(--accent-strong);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+    }
+
+    h1,
+    h2,
+    h3 {
+      font-family: "Hiragino Mincho ProN", "Yu Mincho", serif;
+      font-weight: 700;
+    }
+
+    h1 {
+      margin: 14px 0 10px;
+      font-size: 32px;
+      line-height: 1.3;
+    }
+
+    .lead {
+      margin: 0;
+      max-width: 760px;
+      color: #52483d;
+      font-size: 15px;
+    }
+
+    .hero-grid {
+      padding: 22px 28px 28px;
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 14px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      background: linear-gradient(180deg, #fffefd, var(--paper-strong));
+    }
+
+    .panel h3 {
+      margin: 0 0 10px;
+      font-size: 18px;
+    }
+
+    .panel p {
+      margin: 0;
+      font-size: 14px;
+    }
+
+    .panel p + p {
+      margin-top: 10px;
+    }
+
+    .stack {
+      display: grid;
+      gap: 10px;
+    }
+
+    .signal {
+      display: grid;
+      gap: 6px;
+      padding: 14px;
+      border-radius: var(--radius-sm);
+      background: #fff;
+      border: 1px solid var(--line);
+    }
+
+    .signal span {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      color: var(--accent);
+    }
+
+    .signal strong {
+      font-size: 15px;
+    }
+
+    .section {
+      padding: 24px;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .section-head h2 {
+      margin: 0;
+      font-size: 24px;
+      color: var(--accent-strong);
+    }
+
+    .section-head p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      max-width: 760px;
+    }
+
+    .section-index {
+      flex: 0 0 auto;
+      min-width: 54px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent-strong);
+      text-align: center;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+    }
+
+    .grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    .grid.cols-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .grid.cols-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      background: #fff;
+    }
+
+    .card h3 {
+      margin: 0 0 8px;
+      font-size: 18px;
+    }
+
+    .card p {
+      margin: 0;
+      font-size: 14px;
+    }
+
+    .card p + p,
+    .card ul,
+    .card ol {
+      margin-top: 10px;
+    }
+
+    ul,
+    ol {
+      padding-left: 18px;
+    }
+
+    li + li {
+      margin-top: 6px;
+    }
+
+    .tone-card {
+      background: linear-gradient(180deg, #fffdf9, #fff7f1);
+    }
+
+    .quote {
+      border-left: 4px solid var(--sub);
+      background: var(--sub-soft);
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      padding: 14px 16px;
+      color: #23424b;
+      font-size: 14px;
+    }
+
+    .timeline {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .step {
+      position: relative;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      background: linear-gradient(180deg, #fff, #fffaf3);
+      min-height: 180px;
+    }
+
+    .step::before {
+      content: attr(data-step);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 30px;
+      border-radius: 999px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+
+    .step h3 {
+      margin: 0 0 8px;
+      font-size: 17px;
+    }
+
+    .dialogue {
+      display: grid;
+      gap: 12px;
+    }
+
+    .bubble {
+      display: grid;
+      gap: 8px;
+      padding: 16px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: #fff;
+    }
+
+    .bubble .meta {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+    }
+
+    .bubble.user {
+      background: #fff8f2;
+      border-color: #ecd7c5;
+    }
+
+    .bubble.ai {
+      background: #f4fbfc;
+      border-color: #d5ecef;
+    }
+
+    .compare {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 9px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+    }
+
+    .tag.issue {
+      background: var(--accent-soft);
+      color: var(--accent-strong);
+    }
+
+    .tag.goal {
+      background: var(--ok-soft);
+      color: var(--ok);
+    }
+
+    .tag.note {
+      background: var(--sub-soft);
+      color: var(--sub);
+    }
+
+    .checklist {
+      display: grid;
+      gap: 10px;
+    }
+
+    .check {
+      display: grid;
+      grid-template-columns: 24px 1fr;
+      gap: 12px;
+      align-items: start;
+      padding: 12px 14px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--line);
+      background: #fff;
+    }
+
+    .check::before {
+      content: "✓";
+      display: grid;
+      place-items: center;
+      width: 24px;
+      height: 24px;
+      border-radius: 999px;
+      background: var(--ok-soft);
+      color: var(--ok);
+      font-weight: 700;
+    }
+
+    .footer {
+      padding-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+      text-align: right;
+    }
+
+    @media (max-width: 1080px) {
+      .shell {
+        grid-template-columns: 1fr;
+      }
+
+      .toc {
+        position: static;
+      }
+
+      .hero-grid,
+      .compare,
+      .timeline {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 760px) {
+      body {
+        line-height: 1.6;
+      }
+
+      h1 {
+        font-size: 27px;
+      }
+
+      .section-head {
+        display: block;
+      }
+
+      .section-index {
+        display: inline-flex;
+        margin-bottom: 10px;
+      }
+
+      .grid.cols-2,
+      .grid.cols-3 {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-top,
+      .hero-grid,
+      .section {
+        padding-left: 18px;
+        padding-right: 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="toc">
+      <h2>相談メモ</h2>
+      <p>人に相談する前提で、最終目標と現状、知りたいことを一枚で説明するためのドラフトです。</p>
+      <ol>
+        <li><a href="#summary">概要</a></li>
+        <li><a href="#current">最終的にやりたいこと</a></li>
+        <li><a href="#goal">現状</a></li>
+        <li><a href="#design">知りたいこと</a></li>
+        <li><a href="#dialogue">評価で見たい観点</a></li>
+        <li><a href="#ask">相談したい問い</a></li>
+        <li><a href="#next">相談後にやりたいこと</a></li>
+      </ol>
+    </aside>
+
+    <main class="doc">
+      <section class="hero" id="summary">
+        <div class="hero-top">
+          <div class="badge">CONSULTATION DRAFT</div>
+          <h1>学習者の疑問や気づきを引き出す<br />言語化支援システムについて相談したい</h1>
+          <p class="lead">
+            最終的には、学習者が作業後に感じた疑問点や気づきを自然に話せるようにし、
+            その過程でメタ認知を促しながら、得られた知見をまとめて次に活かせるシステムを作りたいです。
+          </p>
+        </div>
+        <div class="hero-grid">
+          <div class="panel">
+            <h3>今回の相談テーマ</h3>
+            <p>
+              そのために、まずは学習者が話しやすいと感じる対話体験を作りたいと考えています。
+              ただ、現状でやっていることは、状況理解と質問応答を行うエージェントに、
+              話し方を和らげるサブエージェントを入れている程度です。
+            </p>
+            <p>
+              これで十分なのか、また話しやすさをどう評価すべきか、
+              そもそも何を意識して設計するのが大事なのかを相談したいです。
+            </p>
+          </div>
+          <div class="stack">
+            <div class="signal">
+              <span>最終目標</span>
+              <strong>学習後の疑問点や気づきを効率よく引き出し、次に活かせる形で残す</strong>
+            </div>
+            <div class="signal">
+              <span>現在地</span>
+              <strong>話し方を和らげるサブエージェントを入れている段階</strong>
+            </div>
+            <div class="signal">
+              <span>知りたいこと</span>
+              <strong>評価手法と、設計で大事にすべき観点</strong>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="current">
+        <div class="section-head">
+          <div>
+            <div class="section-index">01</div>
+            <h2>最終的にやりたいこと</h2>
+            <p>
+              このシステムでやりたいのは、単に自然な会話をすることではなく、
+              学習者の振り返りを支援して、次の学習に活かせる知見を引き出すことです。
+            </p>
+          </div>
+        </div>
+        <div class="grid cols-2">
+          <article class="card">
+            <span class="tag goal">目指している機能</span>
+            <ul>
+              <li>学習者が作業後に抱いた疑問点や引っかかりを引き出す</li>
+              <li>学習者自身の気づきや理解のズレを言葉にしやすくする</li>
+              <li>会話の内容を整理して、次に活かせる形で残す</li>
+            </ul>
+          </article>
+          <article class="card tone-card">
+            <span class="tag goal">そのために必要なこと</span>
+            <ul>
+              <li>学習者が「話してみよう」と思える話しやすさ</li>
+              <li>断片的な発話からでも振り返りを深められる対話</li>
+              <li>メタ認知を促しつつ、会話を学びに接続する設計</li>
+            </ul>
+          </article>
+        </div>
+        <div class="grid cols-3" style="margin-top: 14px;">
+          <article class="card">
+            <h3>疑問点の抽出</h3>
+            <p>
+              作業後にどこで詰まったか、何が理解しきれなかったかを取りこぼさず言語化したいです。
+            </p>
+          </article>
+          <article class="card">
+            <h3>気づきの言語化</h3>
+            <p>
+              「実はここが分かっていなかった」「こう考えればよかった」などの気づきを促したいです。
+            </p>
+          </article>
+          <article class="card">
+            <h3>次への活用</h3>
+            <p>
+              会話で得られた知見を要約し、次の学習や指導に使える形にしたいです。
+            </p>
+          </article>
+        </div>
+        <div class="quote" style="margin-top: 14px;">
+          話しやすさは目的そのものではなく、
+          学習者から意味のある振り返りを引き出すための重要な条件として位置づけています。
+        </div>
+      </section>
+
+      <section class="section" id="goal">
+        <div class="section-head">
+          <div>
+            <div class="section-index">02</div>
+            <h2>現状</h2>
+            <p>
+              現在は、基本的な状況理解と質問応答を行うエージェントに、
+              話し方を和らげるサブエージェントを追加している段階です。
+            </p>
+          </div>
+        </div>
+        <div class="grid cols-2">
+          <article class="card">
+            <span class="tag issue">今やっていること</span>
+            <ul>
+              <li>学習者の発話内容を理解して、それに応じた返答や質問を返す</li>
+              <li>最後に話し方を和らげて、口調を少し話しやすくする</li>
+              <li>少なくとも見た目上は、少しやわらかい返答を作れている</li>
+            </ul>
+          </article>
+          <article class="card">
+            <span class="tag issue">今の悩み</span>
+            <ul>
+              <li>それで本当に学習者が話しやすくなっているのかは分からない</li>
+              <li>話し方の柔らかさだけで十分なのかもまだ見えていない</li>
+              <li>評価をどう置けばよいか分からず、改善の判断が難しい</li>
+            </ul>
+          </article>
+        </div>
+        <div class="grid cols-3" style="margin-top: 14px;">
+          <article class="card">
+            <h3>現在の実装</h3>
+            <p>状況理解と質問応答を行う本体の上に、口調を和らげる層を足しています。</p>
+          </article>
+          <article class="card">
+            <h3>ある程度できていそうなこと</h3>
+            <p>少なくとも返答の見た目は少しやわらかくなり、対話としては成立しています。</p>
+          </article>
+          <article class="card">
+            <h3>まだ分からないこと</h3>
+            <p>学習者の疑問点や気づきの抽出が、本当に改善しているかは確認できていません。</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="design">
+        <div class="section-head">
+          <div>
+            <div class="section-index">03</div>
+            <h2>知りたいこと</h2>
+            <p>
+              相談したいのは、大きく分けると `どう評価するか` と `何を意識して設計するか` の2点です。
+            </p>
+          </div>
+        </div>
+        <div class="grid cols-2">
+          <article class="card">
+            <h3>評価手法</h3>
+            <p>
+              先行研究では人的評価が多そうですが、まずはもっと軽く回せる評価方法があるのか知りたいです。
+            </p>
+            <ul>
+              <li>簡単なユーザー評価で十分なのか</li>
+              <li>ログや会話内容から粗く自動評価できるのか</li>
+              <li>どこまで人手なしで見てよいのか</li>
+            </ul>
+          </article>
+          <article class="card">
+            <h3>設計で意識すること</h3>
+            <p>
+              話し方をやわらげる以外に、何を意識すると学習者の振り返りを引き出しやすくなるのかを知りたいです。
+            </p>
+            <ul>
+              <li>問いかけ方</li>
+              <li>会話のテンポ</li>
+              <li>どの情報を引き出すべきか</li>
+            </ul>
+          </article>
+        </div>
+        <div class="grid cols-2" style="margin-top: 14px;">
+          <article class="card">
+            <span class="tag note">評価について特に知りたいこと</span>
+            <ul>
+              <li>話しやすさをどの指標で見ればよいか</li>
+              <li>高速に回せる評価方法はあるか</li>
+              <li>人的評価をするなら何を聞くべきか</li>
+            </ul>
+          </article>
+          <article class="card">
+            <span class="tag note">設計について特に知りたいこと</span>
+            <ul>
+              <li>話し方のやわらかさ以外に大事なことは何か</li>
+              <li>メタ認知を促すにはどんな返し方がよいか</li>
+              <li>次に活かすために何を必ず抽出すべきか</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="dialogue">
+        <div class="section-head">
+          <div>
+            <div class="section-index">04</div>
+            <h2>評価で見たい観点</h2>
+            <p>
+              もし評価を置くなら、少なくとも次のような観点は見たいと考えています。
+            </p>
+          </div>
+        </div>
+        <div class="grid cols-3">
+          <article class="card">
+            <h3>話し始めやすさ</h3>
+            <p>学習者が曖昧な状態でも、最初の一言を出しやすいかを見たいです。</p>
+          </article>
+          <article class="card">
+            <h3>話し続けやすさ</h3>
+            <p>途中で詰まっても、会話を続けながら振り返りを深められるかを見たいです。</p>
+          </article>
+          <article class="card">
+            <h3>疑問点の抽出</h3>
+            <p>学習者が抱えていた疑問点や引っかかりを、会話の中で拾えているかを見たいです。</p>
+          </article>
+          <article class="card">
+            <h3>気づきの言語化</h3>
+            <p>学習者の中にあった気づきや理解のズレを、言葉として表に出せているかを見たいです。</p>
+          </article>
+          <article class="card">
+            <h3>メタ認知の促進</h3>
+            <p>単に答えるのではなく、「なぜそう感じたか」「どこでつまずいたか」を考えられているかを見たいです。</p>
+          </article>
+          <article class="card">
+            <h3>次への活用可能性</h3>
+            <p>会話の結果が、その後の学習や指導に使える形でまとまっているかを見たいです。</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="ask">
+        <div class="section-head">
+          <div>
+            <div class="section-index">05</div>
+            <h2>相談したい問い</h2>
+            <p>
+              人に相談するときは、まず次のような問いを投げたいと考えています。
+            </p>
+          </div>
+        </div>
+        <div class="checklist">
+          <div class="check">
+            <div>
+              <strong>学習者が話しやすいかどうかは、まず何で見ればよいか</strong><br />
+              話しやすさを評価するなら、最初に置くべき観点を知りたいです。
+            </div>
+          </div>
+          <div class="check">
+            <div>
+              <strong>人的評価以外に、軽く回せる評価方法はあるか</strong><br />
+              先行研究では人的評価が多そうなので、その前段で使える方法を知りたいです。
+            </div>
+          </div>
+          <div class="check">
+            <div>
+              <strong>話し方を和らげる以外に、何を意識するべきか</strong><br />
+              問いかけ方や会話設計の観点で、大事なポイントを知りたいです。
+            </div>
+          </div>
+          <div class="check">
+            <div>
+              <strong>学習者から何を引き出せれば、このシステムは価値があると言えるか</strong><br />
+              疑問点、気づき、理解のズレなど、必ず押さえるべき情報を知りたいです。
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="next">
+        <div class="section-head">
+          <div>
+            <div class="section-index">06</div>
+            <h2>相談後にやりたいこと</h2>
+            <p>
+              相談の結果を受けて、次は評価と設計の両方を少しずつ具体化したいです。
+            </p>
+          </div>
+        </div>
+        <div class="grid cols-3">
+          <article class="card">
+            <h3>評価</h3>
+            <p>まずは学習者の話しやすさを粗く見られる評価観点を定めたいです。</p>
+          </article>
+          <article class="card">
+            <h3>対話設計</h3>
+            <p>話し方の柔らかさ以外に、どの対話要素を改善すべきかを整理したいです。</p>
+          </article>
+        </div>
+      </section>
+
+      <div class="footer">
+        Draft file: docs/talkability-consultation.html
+      </div>
+    </main>
+  </div>
+</body>
+</html>

@@ -141,7 +141,7 @@ cp .env.example .env
 - `REASONING_TRANSLATION_MODEL`（任意。翻訳に使うモデル名。既定 `gpt-4o-mini`）
 - `OVERALL_CONTEXT_MODE`（任意。`auto`/`always`/`off`。既定 `auto`）
 - `RESPONSE_REFINER_ENABLED`（任意。`0/false/off/no` で後段のやわらかさ調整エージェントを無効化）
-- `RESPONSE_REFINER_MODEL`（任意。後段リファインに使うモデル名。既定 `gpt-4o-mini`）
+- `RESPONSE_REFINER_MODEL`（任意。後段リファインに使うモデル名。既定 `gpt-5.2`）
 
 ## 実行方法
 
